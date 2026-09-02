@@ -31,31 +31,30 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <!-- Role Selector Modal (First-time or Unlocked) -->
     <div id="roleSelectorModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full p-8 border border-slate-100 space-y-6 text-center">
             <div class="w-16 h-16 bg-gradient-to-tr from-emerald-500 to-sky-500 rounded-2xl mx-auto flex items-center justify-center text-white text-2xl shadow-lg">
                 <i class="fa-solid fa-layer-group"></i>
             </div>
             <div>
-                <h2 class="text-2xl font-extrabold text-slate-900 mb-2">اختر طريقة تشغيل هذه الشاشة</h2>
-                <p class="text-xs text-slate-500">اختر نوع الواجهة. ملاحظة: "شاشة الشباك الكبرى" أو شاشات العرض ستثبت على هذا الجهاز ولا يمكن تغييرها إلا بكلمة مرور المدير.</p>
+                <h2 class="text-2xl font-extrabold text-slate-900 mb-2">اختر طريقة تشغيل هذه الشاشة على هذا الجهاز</h2>
+                <p class="text-xs text-slate-500">اختر نوع الواجهة. يمكنك فتح كل شاشة أو جهاز على حدة (شاشة مراجع، شاشة عرض كبرى، شاشات شبابيك مستقلة، لوحة موظف، أو لوحة مدير).</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 text-right">
                 <button onclick="selectRole('kiosk')" class="p-5 rounded-2xl border-2 border-sky-100 bg-sky-50/50 hover:bg-sky-100 hover:border-sky-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-ticket"></i></div>
                     <h3 class="font-bold text-sky-900 text-sm">شاشة المراجع (Kiosk)</h3>
-                    <p class="text-[11px] text-slate-600">لإصدار التذاكر الذاتية للعملاء.</p>
+                    <p class="text-[11px] text-slate-600">لإصدار التذاكر الذاتية بالصالة.</p>
                 </button>
                 <button onclick="selectRole('display')" class="p-5 rounded-2xl border-2 border-teal-100 bg-teal-50/50 hover:bg-teal-100 hover:border-teal-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-tv"></i></div>
-                    <h3 class="font-bold text-teal-900 text-sm">شاشة عرض تذاكر الانتظار</h3>
-                    <p class="text-[11px] text-slate-600">عرض رقم التذكرة والمكتب فقط بشكل دائم.</p>
+                    <h3 class="font-bold text-teal-900 text-sm">شاشة عرض الأرقام الكبرى</h3>
+                    <p class="text-[11px] text-slate-600">تعرض الرقم الحالي والمكتب بشكل دائم.</p>
                 </button>
                 <button onclick="selectRole('counter')" class="p-5 rounded-2xl border-2 border-indigo-100 bg-indigo-50/50 hover:bg-indigo-100 hover:border-indigo-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-desktop"></i></div>
-                    <h3 class="font-bold text-indigo-900 text-sm">شاشة الشباك (العرض المستقل)</h3>
-                    <p class="text-[11px] text-slate-600">شاشة الشباك لعرض رقم التذكرة والمكتب.</p>
+                    <h3 class="font-bold text-indigo-900 text-sm">شاشة الشباك المستقلة</h3>
+                    <p class="text-[11px] text-slate-600">شاشة مخصصة لكل شباك على حدة.</p>
                 </button>
                 <button onclick="selectRole('staff')" class="p-5 rounded-2xl border-2 border-emerald-100 bg-emerald-50/50 hover:bg-emerald-100 hover:border-emerald-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-sliders"></i></div>
@@ -65,17 +64,16 @@
                 <button onclick="selectRole('search')" class="p-5 rounded-2xl border-2 border-amber-100 bg-amber-50/50 hover:bg-amber-100 hover:border-amber-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-magnifying-glass"></i></div>
                     <h3 class="font-bold text-amber-900 text-sm">الاستعلام المباشر</h3>
-                    <p class="text-[11px] text-slate-600">للبحث عن دور المراجع بالجوال أو السجل.</p>
+                    <p class="text-[11px] text-slate-600">للبحث عن دور المراجع.</p>
                 </button>
             </div>
             <div class="pt-2 border-t flex justify-between items-center">
-                <span class="text-xs text-slate-400">للوصول إلى لوحة الإدارة العامة، اضغط زر المدير في أعلى الشاشة.</span>
+                <span class="text-xs text-slate-400">ملاحظة: يمكنك فتح هذه الصفحة في عدة أجهزة واختيار وضع مستقل لكل جهاز.</span>
                 <button onclick="document.getElementById('roleSelectorModal').classList.add('hidden')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-xl text-xs font-bold text-slate-700">إلغاء</button>
             </div>
         </div>
     </div>
 
-    <!-- Navigation Header Bar -->
     <header class="bg-slate-900 text-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center gap-3">
@@ -84,11 +82,14 @@
                 </div>
                 <div>
                     <h1 class="text-base font-extrabold tracking-wide">إدارة الرعاية الاجتماعية - نظام الانتظار</h1>
-                    <p class="text-[11px] text-slate-400">إدارة الطوابير والشاشات والرسائل السحابية الآلية</p>
+                    <p class="text-[11px] text-slate-400">إدارة الطوابير المتعددة وتزامن الشاشات والأجهزة</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="manualSync()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-xs font-bold rounded-xl text-white transition flex items-center gap-1.5 shadow">
+                    <i class="fa-solid fa-rotate"></i> مزامنة فورية الآن
+                </button>
                 <span id="currentRoleBadge" class="px-3 py-1 bg-slate-800 text-emerald-400 text-xs font-bold rounded-xl border border-slate-700">شاشة الاستقبال</span>
                 <button onclick="openRoleSelector()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 text-sky-400 transition flex items-center gap-1.5">
                     <i class="fa-solid fa-arrows-split-up-and-left"></i> تغيير وضع الشاشة
@@ -100,7 +101,6 @@
         </div>
     </header>
 
-    <!-- Main Content Container -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
 
         <!-- 1. Kiosk View (شاشة إصدار التذاكر للمراجع) -->
@@ -108,7 +108,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-5xl mx-auto w-full">
                 <div class="lg:col-span-7 bg-white rounded-3xl shadow-sm border p-6 sm:p-8">
                     <h2 class="text-2xl font-bold text-slate-900 mb-2">أهلاً بك، أدخل بياناتك للحصول على رقم الانتظار</h2>
-                    <p class="text-xs text-slate-500 mb-6">سيتم حفظ طلبك وإرسال تفاصيل التذكرة وتنبيه واتساب و SMS لرقم جوالك فوراً.</p>
+                    <p class="text-xs text-slate-500 mb-6">سيتم حفظ طلبك ومزامنته مع الشاشات وموظفي الشبابيك فوراً عبر السحابة المحلية.</p>
                     
                     <form onsubmit="handleTicketSubmit(event); return false;" class="space-y-4">
                         <div>
@@ -145,7 +145,7 @@
                         </div>
                         <h3 class="text-xl font-bold">تعليمات خدمة المراجعين</h3>
                         <p class="text-xs text-slate-300 leading-relaxed">
-                            بعد إتمام التسجيل، سيتم حفظ تذكرتك في قاعدة البيانات الموحدة ومزامنتها مع أجهزة الشاشات وموظفي الاستقبال، مع إرسال تفاصيل الدور عبر واتساب ورسائل SMS التذكيرية.
+                            بعد إتمام التسجيل هنا على جهاز المراجع، يتم حفظ البيانات في السحابة المحلية ورؤيتها فوراً على جهاز موظف الاستقبال وشاشات الصالة.
                         </p>
                     </div>
                     <div class="pt-6 border-t border-slate-700 flex justify-between items-center text-xs text-slate-400">
@@ -162,17 +162,17 @@
                 <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div class="flex items-center gap-3 text-emerald-400">
                         <i class="fa-solid fa-tv text-3xl"></i>
-                        <h2 class="text-2xl font-extrabold">شاشة عرض تذاكر الانتظار المباشرة</h2>
+                        <h2 class="text-2xl font-extrabold">شاشة عرض تذاكر الانتظار المركزية</h2>
                     </div>
-                    <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30">مباشر ومحدث</span>
+                    <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30 animate-pulse">تحديث فوري مباشر</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                     <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner">
-                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-2">رقم التذكرة الحالي</span>
+                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-2">رقم التذكرة الحالي قيد الخدمة</span>
                         <div id="displayTicketNum" class="text-7xl font-extrabold text-emerald-400 font-mono latin-digits py-4">---</div>
                     </div>
                     <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner">
-                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider block mb-2">رقم المكتب المخصص</span>
+                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider block mb-2">رقم المكتب / الشباك المخصص</span>
                         <div id="displayDeskNum" class="text-7xl font-extrabold text-sky-300 font-mono latin-digits py-4">---</div>
                     </div>
                 </div>
@@ -189,10 +189,11 @@
                 <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div class="flex items-center gap-3 text-indigo-400">
                         <i class="fa-solid fa-desktop text-3xl"></i>
-                        <h2 class="text-2xl font-extrabold">شاشة الشباك المباشرة المستقلة</h2>
+                        <h2 class="text-2xl font-extrabold">شاشة الشباك المستقلة</h2>
                     </div>
                     <div class="flex items-center gap-2">
-                        <select id="standaloneDeskFilter" onchange="refreshAllViews()" class="bg-slate-800 border border-slate-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold">
+                        <label class="text-xs text-slate-400">حدد هذا الشباك:</label>
+                        <select id="standaloneDeskFilter" onchange="changeStandaloneDesk(this.value)" class="bg-slate-800 border border-slate-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold">
                             <option value="مكتب 1">مكتب 1</option>
                             <option value="مكتب 2">مكتب 2</option>
                             <option value="مكتب 3">مكتب 3</option>
@@ -202,17 +203,17 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                     <div class="bg-slate-800/90 rounded-2xl p-6 border border-slate-700">
-                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider block mb-2">رقم التذكرة قيد الخدمة</span>
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider block mb-2">رقم التذكرة قيد الخدمة على شباكك</span>
                         <div id="standaloneTicketNum" class="text-6xl font-extrabold text-amber-400 font-mono latin-digits py-2">---</div>
                     </div>
                     <div class="bg-slate-800/90 rounded-2xl p-6 border border-slate-700">
                         <span class="text-xs font-bold text-sky-400 uppercase tracking-wider block mb-2">اسم المراجع والخدمة</span>
-                        <div id="standaloneCustInfo" class="text-lg font-bold text-slate-200 py-3 truncate">لا يوجد مراجع حالياً</div>
+                        <div id="standaloneCustInfo" class="text-lg font-bold text-slate-200 py-3 truncate">لا يوجد مراجع حالياً على هذا الشباك</div>
                     </div>
                 </div>
                 <div class="pt-4 border-t border-slate-800 flex justify-between items-center px-2 text-xs text-slate-400">
-                    <span>تציهر هذه الشاشة حالة الشباك المحدد بشكل فوري.</span>
-                    <button onclick="lockScreenToRole('counter')" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-lock"></i> تثبيت الشاشة</button>
+                    <span id="standaloneStatusInfo">تعرض هذه الشاشة الرقم الحالي الخاص بهذا الشباك فقط بشكل متزامن.</span>
+                    <button onclick="lockScreenToRole('counter')" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-lock"></i> تثبيت شاشة الشباك</button>
                 </div>
             </div>
         </section>
@@ -221,12 +222,13 @@
         <section id="view-staff" class="tab-content">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto w-full">
                 <div class="lg:col-span-4 bg-white rounded-2xl shadow-sm border p-6 space-y-4">
-                    <h2 class="text-lg font-bold text-slate-900 border-b pb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-emerald-600"></i> لوحة تحكم الشباك والموظف
+                    <h2 class="text-lg font-bold text-slate-900 border-b pb-3 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-sliders text-emerald-600"></i> لوحة الموظف والشباك</span>
+                        <button onclick="manualSync()" class="text-xs text-emerald-600 hover:underline"><i class="fa-solid fa-rotate"></i> مزامنة</button>
                     </h2>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">رقم المكتب / الشباك الحالي</label>
-                        <select id="activeDeskNumber" class="w-full px-3 py-2.5 border rounded-xl text-sm font-bold bg-white">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">رقم المكتب / الشباك الخاص بك</label>
+                        <select id="activeDeskNumber" onchange="activeDesk = this.value; refreshAllViews();" class="w-full px-3 py-2.5 border rounded-xl text-sm font-bold bg-white">
                             <option value="مكتب 1">مكتب 1</option>
                             <option value="مكتب 2">مكتب 2</option>
                             <option value="مكتب 3">مكتب 3</option>
@@ -235,12 +237,12 @@
                     </div>
                     <div class="pt-2">
                         <button onclick="callNextTicket()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-bullhorn"></i> استدعاء المراجع التالي
+                            <i class="fa-solid fa-bullhorn"></i> استدعاء المراجع التالي للطابور
                         </button>
                     </div>
                     <div class="bg-slate-50 p-4 rounded-xl border space-y-2 text-xs">
                         <div class="flex justify-between"><span>قيد الخدمة حالياً:</span> <span id="currentServingDisplay" class="font-bold text-emerald-600 font-mono latin-digits">---</span></div>
-                        <div class="flex justify-between"><span>المكتب النشط:</span> <span id="currentDeskDisplay" class="font-bold text-slate-700">---</span></div>
+                        <div class="flex justify-between"><span>مكتبك النشط:</span> <span id="currentDeskDisplay" class="font-bold text-slate-700">---</span></div>
                     </div>
                     <div class="pt-2 space-y-2">
                         <button onclick="repeatCurrentCall()" class="w-full py-2.5 bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2">
@@ -284,7 +286,7 @@
                 <div class="flex items-center justify-between border-b pb-3">
                     <div>
                         <h2 class="text-xl font-bold text-slate-900">الاستعلام المباشر عن دورك في الطابور</h2>
-                        <p class="text-xs text-slate-500 mt-1">ابحث برقم الجوال مباشرة (مثل 05XXXXXXXX) أو السجل المدني</p>
+                        <p class="text-xs text-slate-500 mt-1">ابحث برقم الجوال مباشرة أو السجل المدني</p>
                     </div>
                     <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center">
                         <i class="fa-solid fa-magnifying-glass text-lg"></i>
@@ -305,7 +307,7 @@
             <div class="max-w-6xl mx-auto w-full bg-white rounded-2xl shadow-sm border p-6 space-y-6">
                 <div class="flex justify-between items-center border-b pb-4">
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-900">لوحة تحكم المدير والسجلات العامة</h2>
+                        <h2 class="text-2xl font-bold text-slate-900">لوحة تحكم المدير والإعدادات العامة</h2>
                         <p class="text-xs text-slate-500">مراقبة السجلات الكاملة وإعدادات الربط السحابي والرسائل النصية (Taqnyat)</p>
                     </div>
                     <div class="flex gap-2">
@@ -377,11 +379,10 @@
 
     </main>
 
-    <!-- Admin Password Verification Modal -->
     <div id="adminUnlockModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-right space-y-4">
             <h3 class="font-extrabold text-slate-900 text-base">دخول لوحة المدير أو فك التثبيت</h3>
-            <p class="text-xs text-slate-500">أدخل كلمة مرور المدير لفتح الإدارة العامة أو فك قفل الشاشة:</p>
+            <p class="text-xs text-slate-500">أدخل كلمة مرور المدير لفتح الإدارة أو تغيير وضع هذا الجهاز:</p>
             <input type="password" id="adminPinInput" placeholder="أدخل كلمة المرور السرية" class="w-full px-3 py-2 border rounded-xl text-sm latin-digits outline-none focus:ring-2 focus:ring-amber-500">
             <div class="flex gap-2 pt-2">
                 <button onclick="verifyAdminUnlock()" class="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs">تحقق ودخول</button>
@@ -406,17 +407,17 @@
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="bg-white border-t py-3 text-center text-xs text-slate-500">
-        إدارة الرعاية الاجتماعية - نظام الانتظار الذكي متعدد الشاشات © 2026 - جميع الحقوق محفوظة
+        إدارة الرعاية الاجتماعية - نظام الانتظار الذكي متعدد الشاشات والأجهزة © 2026 - جميع الحقوق محفوظة
     </footer>
 
     <script>
         let queueData = JSON.parse(localStorage.getItem('social_care_queue_data') || '[]');
-        let currentRole = localStorage.getItem('social_care_queue_role') || 'kiosk';
+        let currentRole = localStorage.getItem('social_care_queue_role') || '';
         let isLocked = localStorage.getItem('social_care_queue_locked') === 'true';
-        let currentServing = null;
+        let standaloneDesk = localStorage.getItem('social_care_standalone_desk') || 'مكتب 1';
         let activeDesk = "مكتب 1";
+        let currentServing = null;
         
         let tqnyatSettings = JSON.parse(localStorage.getItem('social_care_tqnyat') || '{"token":"","sender":""}');
 
@@ -424,28 +425,50 @@
             document.getElementById('tqnyatToken').value = tqnyatSettings.token || '';
             document.getElementById('tqnyatSender').value = tqnyatSettings.sender || '';
             
-            // Check if first time opening or role selection needed
-            if (!localStorage.getItem('social_care_queue_role')) {
+            const savedDeskSelect = document.getElementById('standaloneDeskFilter');
+            if (savedDeskSelect) {
+                savedDeskSelect.value = standaloneDesk;
+            }
+
+            // If role not chosen yet, open modal
+            if (!currentRole) {
                 document.getElementById('roleSelectorModal').classList.remove('hidden');
             } else {
                 switchView(currentRole, true);
             }
             refreshAllViews();
 
-            // Auto-poll for sync across browser tabs/screens every 1.5 seconds
+            // Automatic polling sync every 1 second across devices via localStorage
             setInterval(() => {
-                const latestData = JSON.parse(localStorage.getItem('social_care_queue_data') || '[]');
-                if (JSON.stringify(latestData) !== JSON.stringify(queueData)) {
-                    queueData = latestData;
-                    refreshAllViews();
+                syncFromStorage();
+            }, 1000);
+
+            // Cross-tab sync listener
+            window.addEventListener('storage', (event) => {
+                if (event.key === 'social_care_queue_data') {
+                    syncFromStorage();
                 }
-            }, 1500);
+            });
         };
+
+        function syncFromStorage() {
+            const latestData = JSON.parse(localStorage.getItem('social_care_queue_data') || '[]');
+            if (JSON.stringify(latestData) !== JSON.stringify(queueData)) {
+                queueData = latestData;
+                refreshAllViews();
+            }
+        }
+
+        function manualSync() {
+            syncFromStorage();
+            alert('تمت مزامنة البيانات وتحديث القائمة بنجاح!');
+        }
 
         function saveQueue() {
             localStorage.setItem('social_care_queue_data', JSON.stringify(queueData));
             localStorage.setItem('social_care_queue_role', currentRole);
             localStorage.setItem('social_care_queue_locked', isLocked);
+            localStorage.setItem('social_care_standalone_desk', standaloneDesk);
         }
 
         function openRoleSelector() {
@@ -468,8 +491,14 @@
             currentRole = role;
             isLocked = true;
             saveQueue();
-            alert('تم تثبيت وعزل هذه الشاشة على الوضع المحدد. للاستجابة أو التغيير ستلزم كلمة مرور المدير.');
+            alert('تم تثبيت هذا الجهاز بنجاح على وضع (' + role + '). لفك التثبيت سيطلب كلمة مرور المدير.');
             switchView(role, true);
+        }
+
+        function changeStandaloneDesk(deskName) {
+            standaloneDesk = deskName;
+            saveQueue();
+            refreshAllViews();
         }
 
         function saveAdminSettings() {
@@ -489,8 +518,8 @@
 
             const roleNames = {
                 'kiosk': 'شاشة المراجع (Kiosk)',
-                'display': 'شاشة العرض الكبرى',
-                'counter': 'شاشة الشباك المستقلة',
+                'display': 'شاشة عرض الأرقام الكبرى',
+                'counter': 'شاشة الشباك المستقلة (' + standaloneDesk + ')',
                 'staff': 'لوحة تحكم الموظف',
                 'search': 'الاستعلام المباشر',
                 'admin': 'لوحة الإدارة العامة'
@@ -553,6 +582,10 @@
 
         function handleTicketSubmit(e) {
             e.preventDefault();
+            
+            // Fetch freshest data before appending
+            queueData = JSON.parse(localStorage.getItem('social_care_queue_data') || '[]');
+
             const name = document.getElementById('custName').value.trim();
             const phone = document.getElementById('custPhone').value.trim();
             const civilId = document.getElementById('custCivil').value.trim();
@@ -587,6 +620,7 @@
         }
 
         function callNextTicket() {
+            syncFromStorage();
             activeDesk = document.getElementById('activeDeskNumber').value;
             const waitingList = queueData.filter(t => t.status === 'منتظر');
             if (waitingList.length === 0) {
@@ -606,6 +640,7 @@
         }
 
         function repeatCurrentCall() {
+            syncFromStorage();
             const servingNow = queueData.find(t => t.status === 'قيد الخدمة') || currentServing;
             if (!servingNow) {
                 alert('لا توجد تذكرة نشطة حالياً لإعادة النداء عليها');
@@ -617,6 +652,7 @@
         }
 
         function finishCurrentTicket() {
+            syncFromStorage();
             const servingNow = queueData.find(t => t.status === 'قيد الخدمة') || currentServing;
             if (!servingNow) {
                 alert('لا توجد تذكرة قيد الخدمة لإنهاؤها');
@@ -629,6 +665,7 @@
         }
 
         function finishTicket(ticketId) {
+            syncFromStorage();
             const t = queueData.find(item => item.id === ticketId);
             if (t) {
                 t.status = 'مكتملة';
@@ -641,10 +678,8 @@
         }
 
         function callSpecificTicket(id) {
+            syncFromStorage();
             activeDesk = document.getElementById('activeDeskNumber').value;
-            queueData.forEach(t => {
-                if (t.status === 'قيد الخدمة') t.status = 'منتظر';
-            });
             const t = queueData.find(item => item.id === id);
             if (t) {
                 t.status = 'قيد الخدمة';
@@ -657,10 +692,12 @@
         }
 
         function refreshAllViews() {
-            document.getElementById('kioskTotalCount').innerText = queueData.length;
+            const kioskCount = document.getElementById('kioskTotalCount');
+            if (kioskCount) kioskCount.innerText = queueData.length;
 
             const waitingList = queueData.filter(t => t.status === 'منتظر');
-            document.getElementById('waitingCountBadge').innerText = waitingList.length + ' في الانتظار';
+            const waitingBadge = document.getElementById('waitingCountBadge');
+            if (waitingBadge) waitingBadge.innerText = waitingList.length + ' في الانتظار';
             
             let tbodyHtml = '';
             queueData.forEach(t => {
@@ -688,30 +725,36 @@
             const adminTable = document.getElementById('adminQueueTableBody');
             if (adminTable) adminTable.innerHTML = tbodyHtml || `<tr><td colspan="8" class="text-center p-6 text-slate-400">لا توجد سجلات</td></tr>`;
             
-            document.getElementById('statTotal').innerText = queueData.length;
-            document.getElementById('statCompleted').innerText = queueData.filter(t => t.status === 'مكتملة').length;
+            const statTotal = document.getElementById('statTotal');
+            if (statTotal) statTotal.innerText = queueData.length;
+            const statComp = document.getElementById('statCompleted');
+            if (statComp) statComp.innerText = queueData.filter(t => t.status === 'مكتملة').length;
 
-            // Public display & Standalone updates
-            const servingNow = queueData.find(t => t.status === 'قيد الخدمة') || currentServing;
+            const servingNow = queueData.slice().reverse().find(t => t.status === 'قيد الخدمة');
             const tNum = servingNow ? servingNow.id : '---';
             const dNum = servingNow ? servingNow.desk : '---';
 
-            document.getElementById('displayTicketNum').innerText = tNum;
-            document.getElementById('displayDeskNum').innerText = dNum;
+            const dispTicket = document.getElementById('displayTicketNum');
+            if (dispTicket) dispTicket.innerText = tNum;
+            const dispDesk = document.getElementById('displayDeskNum');
+            if (dispDesk) dispDesk.innerText = dNum;
 
-            // Standalone Counter filter update
-            const standaloneFilter = document.getElementById('standaloneDeskFilter');
-            const selectedDesk = standaloneFilter ? standaloneFilter.value : 'مكتب 1';
-            const deskServing = queueData.find(t => t.status === 'قيد الخدمة' && t.desk === selectedDesk);
-            
-            document.getElementById('standaloneTicketNum').innerText = deskServing ? deskServing.id : '---';
-            document.getElementById('standaloneCustInfo').innerText = deskServing ? `${deskServing.name} (${deskServing.service})` : 'لا يوجد مراجع حالياً على هذا الشباك';
+            const deskServing = queueData.slice().reverse().find(t => t.status === 'قيد الخدمة' && t.desk === standaloneDesk);
+            const standTicket = document.getElementById('standaloneTicketNum');
+            if (standTicket) standTicket.innerText = deskServing ? deskServing.id : '---';
+            const standCust = document.getElementById('standaloneCustInfo');
+            if (standCust) standCust.innerText = deskServing ? `${deskServing.name} (${deskServing.service})` : `لا يوجد مراجع حالياً على ${standaloneDesk}`;
+            const standStatus = document.getElementById('standaloneStatusInfo');
+            if (standStatus) standStatus.innerText = `هذه الشاشة مخصصة ومعزولة لـ (${standaloneDesk}) وتعرض رقمه المباشر بالتزامن مع الموظف.`;
 
-            document.getElementById('currentServingDisplay').innerText = tNum;
-            document.getElementById('currentDeskDisplay').innerText = dNum;
+            const curServDisp = document.getElementById('currentServingDisplay');
+            if (curServDisp) curServDisp.innerText = tNum;
+            const curDeskDisp = document.getElementById('currentDeskDisplay');
+            if (curDeskDisp) curDeskDisp.innerText = activeDesk;
         }
 
         function performSearch() {
+            syncFromStorage();
             const rawQ = document.getElementById('searchInput').value.trim();
             const resArea = document.getElementById('searchResultArea');
             resArea.innerHTML = '';
@@ -750,6 +793,7 @@
         }
 
         function exportToExcel() {
+            syncFromStorage();
             if (queueData.length === 0) { alert('لا توجد بيانات لتصديرها'); return; }
             const worksheet = XLSX.utils.json_to_sheet(queueData);
             const workbook = XLSX.utils.book_new();
