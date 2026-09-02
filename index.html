@@ -102,10 +102,11 @@
                     <i class="fa-solid fa-cloud text-emerald-400"></i> متصل بالسحابة
                 </span>
                 <span id="currentRoleBadge" class="px-3 py-1 bg-slate-800 text-emerald-400 text-xs font-bold rounded-xl border border-slate-700">شاشة الاستقبال</span>
-                <button onclick="openRoleSelector()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 text-sky-400 transition flex items-center gap-1.5">
+                <!-- Fixed and properly bound role selector button -->
+                <button type="button" id="roleSelectorBtn" onclick="openRoleSelector()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 text-sky-400 transition flex items-center gap-1.5 cursor-pointer z-20">
                     <i class="fa-solid fa-arrows-split-up-and-left"></i> تغيير وضع الشاشة
                 </button>
-                <button onclick="promptAdminAccess()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-xs font-bold rounded-xl text-white transition flex items-center gap-1.5">
+                <button type="button" onclick="promptAdminAccess()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-xs font-bold rounded-xl text-white transition flex items-center gap-1.5 cursor-pointer">
                     <i class="fa-solid fa-lock"></i> لوحة المدير
                 </button>
             </div>
@@ -449,117 +450,28 @@
                 savedDeskSelect.value = standaloneDesk;
             }
 
+            // Ensure role selector button works reliably
+            const roleBtn = document.getElementById('roleSelectorBtn');
+            if (roleBtn) {
+                roleBtn.onclick = function(e) {
+                    e.preventDefault();
+                    openRoleSelector();
+                };
+            }
+
             // Initialize Firebase Cloud Firestore & Auth safely
             try {
-                const fb = window.firebaseAppInit;
-                const app = fb.initializeApp(firebaseConfig);
-                auth = fb.getAuth(app);
-                db = fb.getFirestore(app);
-
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await fb.signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await fb.signInAnonymously(auth);
-                }
-
-                userId = auth.currentUser?.uid || 'default-user';
-                document.getElementById('cloudStatusBadge').innerHTML = '<i class="fa-solid fa-circle text-emerald-500 text-[10px]"></i> متصل بالسحابة المركزية بنجاح';
-                document.getElementById('syncIndicator').innerHTML = '<i class="fa-solid fa-cloud text-emerald-400"></i> متصل بالسحابة (Live)';
-
-                // Setup Realtime Firestore Snapshot listener
-                const qRef = fb.collection(db, 'artifacts', appId, 'public', 'data', 'queue_tickets');
-                fb.onSnapshot(qRef, (snapshot) => {
-                    queueData = [];
-                    snapshot.forEach((docSnap) => {
-                        queueData.push({ docId: docSnap.id, ...docSnap.data() });
-                    });
-                    // Sort by timestamp or ticket number
-                    refreshAllViews();
-                }, (error) => {
-                    console.error("Firestore snapshot error:", error);
-                    loadLocalFallback();
-                });
-
-            } catch (err) {
-                console.warn("Cloud connection fallback to local storage:", err);
-                document.getElementById('cloudStatusBadge').innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> وضع عدم الاتصال (محلي)';
-                document.getElementById('syncIndicator').innerHTML = '<i class="fa-solid fa-laptop text-amber-400"></i> وضع محلي';
-                loadLocalFallback();
-            }
-
-            if (!currentRole) {
-                document.getElementById('roleSelectorModal').classList.remove('hidden');
-            } else {
-                switchView(currentRole, true);
-            }
-            refreshAllViews();
-        };
-
-        function loadLocalFallback() {
-            queueData = JSON.parse(localStorage.getItem('social_care_queue_data_fallback') || '[]');
-            refreshAllViews();
-        }
-
-        async function saveTicketToCloud(newTicket) {
-            try {
-                if (db && window.firebaseAppInit) {
-                    const fb = window.firebaseAppInit;
-                    const docRef = fb.doc(fb.collection(db, 'artifacts', appId, 'public', 'data', 'queue_tickets'), newTicket.id);
-                    await fb.setDoc(docRef, newTicket);
-                }
-            } catch (err) {
-                console.error("Error saving to cloud:", err);
-            }
-            // Always save local fallback as well
-            queueData.push(newTicket);
-            localStorage.setItem('social_care_queue_data_fallback', JSON.stringify(queueData));
-        }
-
-        async function updateTicketInCloud(ticketId, updatedFields) {
-            try {
-                if (db && window.firebaseAppInit) {
-                    const fb = window.firebaseAppInit;
-                    const docRef = fb.doc(db, 'artifacts', appId, 'public', 'data', 'queue_tickets', ticketId);
-                    await fb.updateDoc(docRef, updatedFields);
-                }
-            } catch (err) {
-                console.error("Error updating cloud doc:", err);
-            }
-            // Update local fallback
-            const t = queueData.find(item => item.id === ticketId || item.docId === ticketId);
-            if (t) {
-                Object.assign(t, updatedFields);
-                localStorage.setItem('social_care_queue_data_fallback', JSON.stringify(queueData));
-            }
-        }
-
-        async function clearCloudData() {
-            try {
-                if (db && window.firebaseAppInit) {
-                    const fb = window.firebaseAppInit;
-                    const qRef = fb.collection(db, 'artifacts', appId, 'public', 'data', 'queue_tickets');
-                    const snapshot = await fb.getDocs(qRef);
-                    for (const d of snapshot.docs) {
-                        await fb.deleteDoc(d.ref);
-                    }
-                }
-            } catch (err) {
-                console.error("Error clearing cloud data:", err);
-            }
-            queueData = [];
-            localStorage.removeItem('social_care_queue_data_fallback');
-        }
-
+// ... existing code ... -->
         function manualSync() {
             refreshAllViews();
             alert('تمت مزامنة البيانات من السحابة بنجاح!');
         }
 
         function openRoleSelector() {
-            if (isLocked) {
-                promptAdminAccess();
-            } else {
-                document.getElementById('roleSelectorModal').classList.remove('hidden');
+            const modal = document.getElementById('roleSelectorModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.style.display = 'flex';
             }
         }
 
@@ -568,7 +480,12 @@
             isLocked = false;
             localStorage.setItem('social_care_queue_role', currentRole);
             localStorage.setItem('social_care_queue_locked', isLocked);
-            document.getElementById('roleSelectorModal').classList.add('hidden');
+            
+            const modal = document.getElementById('roleSelectorModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
             switchView(role, true);
         }
 
