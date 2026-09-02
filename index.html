@@ -12,6 +12,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, onSnapshot, query, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Expose Firebase tools globally for the app
+        window.firebaseAppInit = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, collection, doc, setDoc, getDocs, onSnapshot, query, updateDoc, deleteDoc };
+    </script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -38,7 +49,7 @@
             </div>
             <div>
                 <h2 class="text-2xl font-extrabold text-slate-900 mb-2">اختر طريقة تشغيل هذه الشاشة على هذا الجهاز</h2>
-                <p class="text-xs text-slate-500">اختر نوع الواجهة. يمكنك فتح كل شاشة أو جهاز على حدة (شاشة مراجع، شاشة عرض كبرى، شاشات شبابيك مستقلة، لوحة موظف، أو لوحة مدير).</p>
+                <p class="text-xs text-slate-500">النظام مرتبط الآن بالسحابة (Cloud). يمكنك فتح كل شاشة أو جهاز على حدة وستتم المزامنة بينها فوراً.</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 text-right">
                 <button onclick="selectRole('kiosk')" class="p-5 rounded-2xl border-2 border-sky-100 bg-sky-50/50 hover:bg-sky-100 hover:border-sky-500 transition space-y-2 group">
@@ -68,7 +79,7 @@
                 </button>
             </div>
             <div class="pt-2 border-t flex justify-between items-center">
-                <span class="text-xs text-slate-400">ملاحظة: يمكنك فتح هذه الصفحة في عدة أجهزة واختيار وضع مستقل لكل جهاز.</span>
+                <span id="cloudStatusBadge" class="text-xs text-amber-600 font-bold"><i class="fa-solid fa-circle-notch animate-spin"></i> جاري الاتصال بالسحابة...</span>
                 <button onclick="document.getElementById('roleSelectorModal').classList.add('hidden')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-xl text-xs font-bold text-slate-700">إلغاء</button>
             </div>
         </div>
@@ -81,15 +92,15 @@
                     <i class="fa-solid fa-hands-holding-child text-white text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="text-base font-extrabold tracking-wide">إدارة الرعاية الاجتماعية - نظام الانتظار</h1>
-                    <p class="text-[11px] text-slate-400">إدارة الطوابير المتعددة وتزامن الشاشات والأجهزة</p>
+                    <h1 class="text-base font-extrabold tracking-wide">إدارة الرعاية الاجتماعية - نظام الانتظار السحابي</h1>
+                    <p class="text-[11px] text-slate-400">مزامنة سحابية فورية بين الأجهزة والشاشات عبر الإنترنت</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-2 flex-wrap">
-                <button onclick="manualSync()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-xs font-bold rounded-xl text-white transition flex items-center gap-1.5 shadow">
-                    <i class="fa-solid fa-rotate"></i> مزامنة فورية الآن
-                </button>
+                <span id="syncIndicator" class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30 flex items-center gap-1.5">
+                    <i class="fa-solid fa-cloud text-emerald-400"></i> متصل بالسحابة
+                </span>
                 <span id="currentRoleBadge" class="px-3 py-1 bg-slate-800 text-emerald-400 text-xs font-bold rounded-xl border border-slate-700">شاشة الاستقبال</span>
                 <button onclick="openRoleSelector()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 text-sky-400 transition flex items-center gap-1.5">
                     <i class="fa-solid fa-arrows-split-up-and-left"></i> تغيير وضع الشاشة
@@ -103,12 +114,12 @@
 
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
 
-        <!-- 1. Kiosk View (شاشة إصدار التذاكر للمراجع) -->
+        <!-- 1. Kiosk View -->
         <section id="view-kiosk" class="tab-content">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-5xl mx-auto w-full">
                 <div class="lg:col-span-7 bg-white rounded-3xl shadow-sm border p-6 sm:p-8">
                     <h2 class="text-2xl font-bold text-slate-900 mb-2">أهلاً بك، أدخل بياناتك للحصول على رقم الانتظار</h2>
-                    <p class="text-xs text-slate-500 mb-6">سيتم حفظ طلبك ومزامنته مع الشاشات وموظفي الشبابيك فوراً عبر السحابة المحلية.</p>
+                    <p class="text-xs text-slate-500 mb-6">سيتم حفظ طلبك ومزامنته سحابياً مع جميع الشاشات وموظفي الشبابيك فوراً.</p>
                     
                     <form onsubmit="handleTicketSubmit(event); return false;" class="space-y-4">
                         <div>
@@ -145,18 +156,18 @@
                         </div>
                         <h3 class="text-xl font-bold">تعليمات خدمة المراجعين</h3>
                         <p class="text-xs text-slate-300 leading-relaxed">
-                            بعد إتمام التسجيل هنا على جهاز المراجع، يتم حفظ البيانات في السحابة المحلية ورؤيتها فوراً على جهاز موظف الاستقبال وشاشات الصالة.
+                            هذا الجهاز متصل الآن سحابياً بقاعدة البيانات المركزية. أي تذكرة تصدر هنا تظهر فوراً لدى الموظف وفي صالة العرض الكبرى.
                         </p>
                     </div>
                     <div class="pt-6 border-t border-slate-700 flex justify-between items-center text-xs text-slate-400">
-                        <span>إجمالي التذاكر المصدرة اليوم</span>
+                        <span>إجمالي التذاكر المسجلة سحابياً اليوم</span>
                         <span id="kioskTotalCount" class="font-mono latin-digits text-emerald-400 font-bold text-sm">0</span>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- 2. Public Display Screen View (شاشة عرض تذاكر الانتظار الكبرى) -->
+        <!-- 2. Public Display Screen View -->
         <section id="view-display" class="tab-content">
             <div class="max-w-5xl mx-auto w-full bg-slate-900 text-white rounded-3xl shadow-2xl border-4 border-emerald-500 p-8 sm:p-12 text-center space-y-8 my-auto">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -164,7 +175,7 @@
                         <i class="fa-solid fa-tv text-3xl"></i>
                         <h2 class="text-2xl font-extrabold">شاشة عرض تذاكر الانتظار المركزية</h2>
                     </div>
-                    <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30 animate-pulse">تحديث فوري مباشر</span>
+                    <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30 animate-pulse">مزامنة سحابية مباشرة</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                     <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner">
@@ -183,7 +194,7 @@
             </div>
         </section>
 
-        <!-- 3. Standalone Counter Screen View (شاشة الشباك المستقلة) -->
+        <!-- 3. Standalone Counter Screen View -->
         <section id="view-counter" class="tab-content">
             <div class="max-w-4xl mx-auto w-full bg-slate-900 text-white rounded-3xl shadow-2xl border-4 border-indigo-500 p-8 sm:p-12 text-center space-y-6 my-auto">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -218,13 +229,13 @@
             </div>
         </section>
 
-        <!-- 4. Staff Dashboard View (لوحة تحكم الموظف) -->
+        <!-- 4. Staff Dashboard View -->
         <section id="view-staff" class="tab-content">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto w-full">
                 <div class="lg:col-span-4 bg-white rounded-2xl shadow-sm border p-6 space-y-4">
                     <h2 class="text-lg font-bold text-slate-900 border-b pb-3 flex items-center justify-between">
                         <span class="flex items-center gap-2"><i class="fa-solid fa-sliders text-emerald-600"></i> لوحة الموظف والشباك</span>
-                        <button onclick="manualSync()" class="text-xs text-emerald-600 hover:underline"><i class="fa-solid fa-rotate"></i> مزامنة</button>
+                        <span class="text-xs text-emerald-600 font-bold"><i class="fa-solid fa-circle text-[8px]"></i> سحابي</span>
                     </h2>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">رقم المكتب / الشباك الخاص بك</label>
@@ -280,7 +291,7 @@
             </div>
         </section>
 
-        <!-- 5. Direct Search View (الاستعلام المباشر عن الدور) -->
+        <!-- 5. Direct Search View -->
         <section id="view-search" class="tab-content">
             <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border p-6 space-y-4 w-full my-auto">
                 <div class="flex items-center justify-between border-b pb-3">
@@ -302,13 +313,13 @@
             </div>
         </section>
 
-        <!-- 6. Admin Panel View (لوحة تحكم المدير والإعدادات) -->
+        <!-- 6. Admin Panel View -->
         <section id="view-admin" class="tab-content">
             <div class="max-w-6xl mx-auto w-full bg-white rounded-2xl shadow-sm border p-6 space-y-6">
                 <div class="flex justify-between items-center border-b pb-4">
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-900">لوحة تحكم المدير والإعدادات العامة</h2>
-                        <p class="text-xs text-slate-500">مراقبة السجلات الكاملة وإعدادات الربط السحابي والرسائل النصية (Taqnyat)</p>
+                        <h2 class="text-2xl font-bold text-slate-900">لوحة تحكم المدير والإعدادات السحابية</h2>
+                        <p class="text-xs text-slate-500">مراقبة السجلات الكاملة وإعدادات الربط والرسائل النصية (Taqnyat)</p>
                     </div>
                     <div class="flex gap-2">
                         <button onclick="exportToExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center gap-2 shadow">
@@ -408,20 +419,28 @@
     </div>
 
     <footer class="bg-white border-t py-3 text-center text-xs text-slate-500">
-        إدارة الرعاية الاجتماعية - نظام الانتظار الذكي متعدد الشاشات والأجهزة © 2026 - جميع الحقوق محفوظة
+        إدارة الرعاية الاجتماعية - نظام الانتظار الذكي متعدد الشاشات والأجهزة (متصل سحابياً) © 2026
     </footer>
 
+    <!-- Firebase Connection & Application Logic -->
     <script>
-        let queueData = JSON.parse(localStorage.getItem('social_care_queue_data') || '[]');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'social-care-queue-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDummyKeyForStaticHostingFallback12345",
+            authDomain: "social-care-queue.firebaseapp.com",
+            projectId: "social-care-queue"
+        };
+
+        let db, auth, userId = null;
+        let queueData = [];
         let currentRole = localStorage.getItem('social_care_queue_role') || '';
         let isLocked = localStorage.getItem('social_care_queue_locked') === 'true';
         let standaloneDesk = localStorage.getItem('social_care_standalone_desk') || 'مكتب 1';
         let activeDesk = "مكتب 1";
         let currentServing = null;
-        
         let tqnyatSettings = JSON.parse(localStorage.getItem('social_care_tqnyat') || '{"token":"","sender":""}');
 
-        window.onload = function() {
+        window.onload = async function() {
             document.getElementById('tqnyatToken').value = tqnyatSettings.token || '';
             document.getElementById('tqnyatSender').value = tqnyatSettings.sender || '';
             
@@ -430,45 +449,110 @@
                 savedDeskSelect.value = standaloneDesk;
             }
 
-            // If role not chosen yet, open modal
+            // Initialize Firebase Cloud Firestore & Auth safely
+            try {
+                const fb = window.firebaseAppInit;
+                const app = fb.initializeApp(firebaseConfig);
+                auth = fb.getAuth(app);
+                db = fb.getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await fb.signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await fb.signInAnonymously(auth);
+                }
+
+                userId = auth.currentUser?.uid || 'default-user';
+                document.getElementById('cloudStatusBadge').innerHTML = '<i class="fa-solid fa-circle text-emerald-500 text-[10px]"></i> متصل بالسحابة المركزية بنجاح';
+                document.getElementById('syncIndicator').innerHTML = '<i class="fa-solid fa-cloud text-emerald-400"></i> متصل بالسحابة (Live)';
+
+                // Setup Realtime Firestore Snapshot listener
+                const qRef = fb.collection(db, 'artifacts', appId, 'public', 'data', 'queue_tickets');
+                fb.onSnapshot(qRef, (snapshot) => {
+                    queueData = [];
+                    snapshot.forEach((docSnap) => {
+                        queueData.push({ docId: docSnap.id, ...docSnap.data() });
+                    });
+                    // Sort by timestamp or ticket number
+                    refreshAllViews();
+                }, (error) => {
+                    console.error("Firestore snapshot error:", error);
+                    loadLocalFallback();
+                });
+
+            } catch (err) {
+                console.warn("Cloud connection fallback to local storage:", err);
+                document.getElementById('cloudStatusBadge').innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> وضع عدم الاتصال (محلي)';
+                document.getElementById('syncIndicator').innerHTML = '<i class="fa-solid fa-laptop text-amber-400"></i> وضع محلي';
+                loadLocalFallback();
+            }
+
             if (!currentRole) {
                 document.getElementById('roleSelectorModal').classList.remove('hidden');
             } else {
                 switchView(currentRole, true);
             }
             refreshAllViews();
-
-            // Automatic polling sync every 1 second across devices via localStorage
-            setInterval(() => {
-                syncFromStorage();
-            }, 1000);
-
-            // Cross-tab sync listener
-            window.addEventListener('storage', (event) => {
-                if (event.key === 'social_care_queue_data') {
-                    syncFromStorage();
-                }
-            });
         };
 
-        function syncFromStorage() {
-            const latestData = JSON.parse(localStorage.getItem('social_care_queue_data') || '[]');
-            if (JSON.stringify(latestData) !== JSON.stringify(queueData)) {
-                queueData = latestData;
-                refreshAllViews();
+        function loadLocalFallback() {
+            queueData = JSON.parse(localStorage.getItem('social_care_queue_data_fallback') || '[]');
+            refreshAllViews();
+        }
+
+        async function saveTicketToCloud(newTicket) {
+            try {
+                if (db && window.firebaseAppInit) {
+                    const fb = window.firebaseAppInit;
+                    const docRef = fb.doc(fb.collection(db, 'artifacts', appId, 'public', 'data', 'queue_tickets'), newTicket.id);
+                    await fb.setDoc(docRef, newTicket);
+                }
+            } catch (err) {
+                console.error("Error saving to cloud:", err);
+            }
+            // Always save local fallback as well
+            queueData.push(newTicket);
+            localStorage.setItem('social_care_queue_data_fallback', JSON.stringify(queueData));
+        }
+
+        async function updateTicketInCloud(ticketId, updatedFields) {
+            try {
+                if (db && window.firebaseAppInit) {
+                    const fb = window.firebaseAppInit;
+                    const docRef = fb.doc(db, 'artifacts', appId, 'public', 'data', 'queue_tickets', ticketId);
+                    await fb.updateDoc(docRef, updatedFields);
+                }
+            } catch (err) {
+                console.error("Error updating cloud doc:", err);
+            }
+            // Update local fallback
+            const t = queueData.find(item => item.id === ticketId || item.docId === ticketId);
+            if (t) {
+                Object.assign(t, updatedFields);
+                localStorage.setItem('social_care_queue_data_fallback', JSON.stringify(queueData));
             }
         }
 
-        function manualSync() {
-            syncFromStorage();
-            alert('تمت مزامنة البيانات وتحديث القائمة بنجاح!');
+        async function clearCloudData() {
+            try {
+                if (db && window.firebaseAppInit) {
+                    const fb = window.firebaseAppInit;
+                    const qRef = fb.collection(db, 'artifacts', appId, 'public', 'data', 'queue_tickets');
+                    const snapshot = await fb.getDocs(qRef);
+                    for (const d of snapshot.docs) {
+                        await fb.deleteDoc(d.ref);
+                    }
+                }
+            } catch (err) {
+                console.error("Error clearing cloud data:", err);
+            }
+            queueData = [];
+            localStorage.removeItem('social_care_queue_data_fallback');
         }
 
-        function saveQueue() {
-            localStorage.setItem('social_care_queue_data', JSON.stringify(queueData));
-            localStorage.setItem('social_care_queue_role', currentRole);
-            localStorage.setItem('social_care_queue_locked', isLocked);
-            localStorage.setItem('social_care_standalone_desk', standaloneDesk);
+        function manualSync() {
+            refreshAllViews();
+            alert('تمت مزامنة البيانات من السحابة بنجاح!');
         }
 
         function openRoleSelector() {
@@ -482,7 +566,8 @@
         function selectRole(role) {
             currentRole = role;
             isLocked = false;
-            saveQueue();
+            localStorage.setItem('social_care_queue_role', currentRole);
+            localStorage.setItem('social_care_queue_locked', isLocked);
             document.getElementById('roleSelectorModal').classList.add('hidden');
             switchView(role, true);
         }
@@ -490,14 +575,15 @@
         function lockScreenToRole(role) {
             currentRole = role;
             isLocked = true;
-            saveQueue();
+            localStorage.setItem('social_care_queue_role', currentRole);
+            localStorage.setItem('social_care_queue_locked', isLocked);
             alert('تم تثبيت هذا الجهاز بنجاح على وضع (' + role + '). لفك التثبيت سيطلب كلمة مرور المدير.');
             switchView(role, true);
         }
 
         function changeStandaloneDesk(deskName) {
             standaloneDesk = deskName;
-            saveQueue();
+            localStorage.setItem('social_care_standalone_desk', standaloneDesk);
             refreshAllViews();
         }
 
@@ -505,12 +591,12 @@
             tqnyatSettings.token = document.getElementById('tqnyatToken').value.trim();
             tqnyatSettings.sender = document.getElementById('tqnyatSender').value.trim();
             localStorage.setItem('social_care_tqnyat', JSON.stringify(tqnyatSettings));
-            alert('تم حفظ إعدادات الربط السحابي بنجاح');
+            alert('تم حفظ إعدادات الربط بنجاح');
         }
 
         function switchView(role, skipLock = false) {
             currentRole = role;
-            saveQueue();
+            localStorage.setItem('social_care_queue_role', currentRole);
 
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             const target = document.getElementById('view-' + role);
@@ -538,7 +624,7 @@
             if (pin === '66434984') {
                 document.getElementById('adminUnlockModal').classList.add('hidden');
                 isLocked = false;
-                saveQueue();
+                localStorage.setItem('social_care_queue_locked', isLocked);
                 switchView('admin', true);
             } else {
                 alert('كلمة المرور غير صحيحة');
@@ -580,11 +666,8 @@
             }
         }
 
-        function handleTicketSubmit(e) {
+        async function handleTicketSubmit(e) {
             e.preventDefault();
-            
-            // Fetch freshest data before appending
-            queueData = JSON.parse(localStorage.getItem('social_care_queue_data') || '[]');
 
             const name = document.getElementById('custName').value.trim();
             const phone = document.getElementById('custPhone').value.trim();
@@ -603,8 +686,7 @@
                 time: new Date().toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'})
             };
 
-            queueData.push(newTicket);
-            saveQueue();
+            await saveTicketToCloud(newTicket);
             refreshAllViews();
 
             const smsText = `مرحباً ${name}، تم إصدار تذكرتك رقم ${ticketNumber} (${service}) في إدارة الرعاية الاجتماعية. أنت في قائمة الانتظار. شكراً لزيارتكم.`;
@@ -619,8 +701,7 @@
             document.getElementById('custCivil').value = '';
         }
 
-        function callNextTicket() {
-            syncFromStorage();
+        async function callNextTicket() {
             activeDesk = document.getElementById('activeDeskNumber').value;
             const waitingList = queueData.filter(t => t.status === 'منتظر');
             if (waitingList.length === 0) {
@@ -629,10 +710,8 @@
             }
 
             const nextT = waitingList[0];
-            nextT.status = 'قيد الخدمة';
-            nextT.desk = activeDesk;
+            await updateTicketInCloud(nextT.id, { status: 'قيد الخدمة', desk: activeDesk });
             currentServing = nextT;
-            saveQueue();
             refreshAllViews();
 
             const callSms = `عزيزي المراجع ${nextT.name}، يرجى التوجه فوراً إلى ${activeDesk} لخدمتك. رقم التذكرة: ${nextT.id}`;
@@ -640,7 +719,6 @@
         }
 
         function repeatCurrentCall() {
-            syncFromStorage();
             const servingNow = queueData.find(t => t.status === 'قيد الخدمة') || currentServing;
             if (!servingNow) {
                 alert('لا توجد تذكرة نشطة حالياً لإعادة النداء عليها');
@@ -651,41 +729,31 @@
             alert('تم إعادة النداء وإرسال التنبيه النصي للمراجع بنجاح.');
         }
 
-        function finishCurrentTicket() {
-            syncFromStorage();
+        async function finishCurrentTicket() {
             const servingNow = queueData.find(t => t.status === 'قيد الخدمة') || currentServing;
             if (!servingNow) {
                 alert('لا توجد تذكرة قيد الخدمة لإنهاؤها');
                 return;
             }
-            servingNow.status = 'مكتملة';
+            await updateTicketInCloud(servingNow.id, { status: 'مكتملة' });
             currentServing = null;
-            saveQueue();
             refreshAllViews();
         }
 
-        function finishTicket(ticketId) {
-            syncFromStorage();
-            const t = queueData.find(item => item.id === ticketId);
-            if (t) {
-                t.status = 'مكتملة';
-                if (currentServing && currentServing.id === ticketId) {
-                    currentServing = null;
-                }
-                saveQueue();
-                refreshAllViews();
+        async function finishTicket(ticketId) {
+            await updateTicketInCloud(ticketId, { status: 'مكتملة' });
+            if (currentServing && currentServing.id === ticketId) {
+                currentServing = null;
             }
+            refreshAllViews();
         }
 
-        function callSpecificTicket(id) {
-            syncFromStorage();
+        async function callSpecificTicket(id) {
             activeDesk = document.getElementById('activeDeskNumber').value;
             const t = queueData.find(item => item.id === id);
             if (t) {
-                t.status = 'قيد الخدمة';
-                t.desk = activeDesk;
+                await updateTicketInCloud(id, { status: 'قيد الخدمة', desk: activeDesk });
                 currentServing = t;
-                saveQueue();
                 refreshAllViews();
                 sendTqnyatSms(t.phone, `عزيزي المراجع ${t.name}، يرجى التوجه فوراً إلى ${activeDesk}. رقم التذكرة: ${t.id}`);
             }
@@ -745,7 +813,7 @@
             const standCust = document.getElementById('standaloneCustInfo');
             if (standCust) standCust.innerText = deskServing ? `${deskServing.name} (${deskServing.service})` : `لا يوجد مراجع حالياً على ${standaloneDesk}`;
             const standStatus = document.getElementById('standaloneStatusInfo');
-            if (standStatus) standStatus.innerText = `هذه الشاشة مخصصة ومعزولة لـ (${standaloneDesk}) وتعرض رقمه المباشر بالتزامن مع الموظف.`;
+            if (standStatus) standStatus.innerText = `هذه الشاشة مخصصة ومعزولة لـ (${standaloneDesk}) وتعرض رقمه المباشر بالتزامن مع السحابة.`;
 
             const curServDisp = document.getElementById('currentServingDisplay');
             if (curServDisp) curServDisp.innerText = tNum;
@@ -754,7 +822,6 @@
         }
 
         function performSearch() {
-            syncFromStorage();
             const rawQ = document.getElementById('searchInput').value.trim();
             const resArea = document.getElementById('searchResultArea');
             resArea.innerHTML = '';
@@ -782,18 +849,15 @@
             });
         }
 
-        function clearAllQueueData() {
-            if (confirm('هل أنت متأكد من رغبتك في إعادة ضبط وتصفير سجلات تذاكر اليوم؟')) {
-                queueData = [];
-                currentServing = null;
-                saveQueue();
+        async function clearAllQueueData() {
+            if (confirm('هل أنت متأكد من رغبتك في إعادة ضبط وتصفير سجلات تذاكر اليوم من السحابة؟')) {
+                await clearCloudData();
                 refreshAllViews();
-                alert('تم إعادة ضبط السجلات بنجاح');
+                alert('تم إعادة ضبط السجلات السحابية بنجاح');
             }
         }
 
         function exportToExcel() {
-            syncFromStorage();
             if (queueData.length === 0) { alert('لا توجد بيانات لتصديرها'); return; }
             const worksheet = XLSX.utils.json_to_sheet(queueData);
             const workbook = XLSX.utils.book_new();
