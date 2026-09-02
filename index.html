@@ -669,10 +669,20 @@
         async function handleTicketSubmit(e) {
             e.preventDefault();
 
-            const name = document.getElementById('custName').value.trim();
-            const phone = document.getElementById('custPhone').value.trim();
-            const civilId = document.getElementById('custCivil').value.trim();
-            const service = document.getElementById('custService').value;
+            const nameInput = document.getElementById('custName');
+            const phoneInput = document.getElementById('custPhone');
+            const civilInput = document.getElementById('custCivil');
+            const serviceInput = document.getElementById('custService');
+
+            if (!nameInput || !phoneInput || !civilInput || !serviceInput) {
+                console.error("Form inputs not found");
+                return;
+            }
+
+            const name = nameInput.value.trim();
+            const phone = phoneInput.value.trim();
+            const civilId = civilInput.value.trim();
+            const service = serviceInput.value;
 
             const ticketNumber = 'A-' + (100 + queueData.length + 1);
             const newTicket = {
@@ -692,13 +702,17 @@
             const smsText = `مرحباً ${name}، تم إصدار تذكرتك رقم ${ticketNumber} (${service}) في إدارة الرعاية الاجتماعية. أنت في قائمة الانتظار. شكراً لزيارتكم.`;
             sendTqnyatSms(phone, smsText);
 
-            document.getElementById('modalTicketId').innerText = ticketNumber;
-            document.getElementById('modalTicketDetails').innerText = `المراجع: ${name} | الخدمة: ${service}`;
-            document.getElementById('ticketModal').classList.remove('hidden');
+            const modalId = document.getElementById('modalTicketId');
+            const modalDetails = document.getElementById('modalTicketDetails');
+            const ticketModal = document.getElementById('ticketModal');
 
-            document.getElementById('custName').value = '';
-            document.getElementById('custPhone').value = '';
-            document.getElementById('custCivil').value = '';
+            if (modalId) modalId.innerText = ticketNumber;
+            if (modalDetails) modalDetails.innerText = `المراجع: ${name} | الخدمة: ${service}`;
+            if (ticketModal) ticketModal.classList.remove('hidden');
+
+            nameInput.value = '';
+            phoneInput.value = '';
+            civilInput.value = '';
         }
 
         async function callNextTicket() {
