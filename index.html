@@ -52,7 +52,7 @@
                 </button>
                 <button onclick="selectRole('display')" class="p-5 rounded-2xl border-2 border-teal-100 bg-teal-50/50 hover:bg-teal-100 hover:border-teal-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-tv"></i></div>
-                    <h3 class="font-bold text-teal-900 text-sm">شاشة عرض الانتظار</h3>
+                    <h3 class="font-bold text-teal-900 text-sm">شاشة عرض التذاكر أو الارقام</h3>
                     <p class="text-[11px] text-slate-600">عرض رقم التذكرة والمكتب.</p>
                 </button>
                 <button onclick="selectRole('counter')" class="p-5 rounded-2xl border-2 border-indigo-100 bg-indigo-50/50 hover:bg-indigo-100 hover:border-indigo-500 transition space-y-2 group">
@@ -178,26 +178,22 @@
             </div>
         </section>
 
-        <!-- 2. Public Display Screen View -->
+        <!-- 2. Public Display Screen View (Dynamic Multi-Desk) -->
         <section id="view-display" class="tab-content">
-            <div class="max-w-5xl mx-auto w-full bg-slate-900 text-white rounded-3xl shadow-2xl border-4 border-emerald-500 p-8 sm:p-12 text-center space-y-8 my-auto">
+            <div class="max-w-6xl mx-auto w-full bg-slate-900 text-white rounded-3xl shadow-2xl border-4 border-emerald-500 p-6 sm:p-10 space-y-8 my-auto">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div class="flex items-center gap-3 text-emerald-400">
                         <i class="fa-solid fa-tv text-3xl"></i>
-                        <h2 class="text-2xl font-extrabold">شاشة عرض تذاكر الانتظار السحابية</h2>
+                        <h2 class="text-2xl font-extrabold">شاشة عرض التذاكر أو الارقام</h2>
                     </div>
                     <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30">متصل بالسحابة مباشر</span>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                    <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner flex flex-col justify-center">
-                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider block mb-2">رقم المكتب المخصص</span>
-                        <div id="displayDeskNum" class="text-6xl font-extrabold text-white font-mono latin-digits py-4">---</div>
-                    </div>
-                    <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner flex flex-col justify-center">
-                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-2">رقم التذكرة الحالي</span>
-                        <div id="displayTicketNum" class="text-6xl font-extrabold text-emerald-400 font-mono latin-digits py-4">---</div>
-                    </div>
+                
+                <!-- Dynamic Grid container for all active desks -->
+                <div id="dynamicDesksDisplayGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Dynamic desks will be injected here automatically -->
                 </div>
+
                 <div class="pt-4 border-t border-slate-800 flex justify-between items-center px-2 text-xs text-slate-400">
                     <span>نرجو التوجه فوراً للمكتب عند نداء الرقم.</span>
                     <button onclick="lockScreenToRole('display')" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-lock"></i> تثبيت وعزل الشاشة</button>
@@ -463,7 +459,7 @@
                 window.pendingAction = 'unlockRole';
                 return;
             }
-            document.getElementById('roleSelectorModal').classList.remove('hidden');
+            document.getElementById('roleSelectorModal').classList.add('hidden');
         }
 
         function selectRole(role) {
@@ -486,7 +482,7 @@
 
             const roleNames = {
                 kiosk: 'شاشة الاستقبال (Kiosk)',
-                display: 'شاشة عرض الانتظار الكبرى',
+                display: 'شاشة عرض التذاكر أو الارقام',
                 counter: 'شاشة الشباك المستقلة',
                 staff: 'لوحة تحكم الموظف',
                 search: 'الاستعلام المباشر',
@@ -647,16 +643,37 @@
             const kioskTotal = document.getElementById('kioskTotalCount');
             if(kioskTotal) kioskTotal.innerText = total;
 
-            // تحديث شاشة العرض الكبرى تلقائياً بأحدث تذكرة قيد الخدمة ورقم مكتبها
-            const servingNow = state.queue.find(t => t.status === 'قيد الخدمة');
-            const dispTicket = document.getElementById('displayTicketNum');
-            const dispDesk = document.getElementById('displayDeskNum');
-            if(dispTicket && dispDesk) {
-                dispTicket.innerText = servingNow ? servingNow.id : '---';
-                dispDesk.innerText = servingNow ? servingNow.desk : '---';
+            // --- Dynamic Multi-Desk Display Renderer ---
+            const dynamicGrid = document.getElementById('dynamicDesksDisplayGrid');
+            if(dynamicGrid) {
+                dynamicGrid.innerHTML = '';
+                // استخراج قائمة المكاتب الفريدة الموجودة في النظام أو المكاتب الافتراضية
+                const defaultDesks = ['مكتب 1', 'مكتب 2', 'مكتب 3', 'مكتب 4'];
+                const activeDesksSet = new Set(defaultDesks);
+                state.queue.forEach(t => {
+                    if(t.desk && t.desk !== '-') {
+                        activeDesksSet.add(t.desk);
+                    }
+                });
+                const allDesks = Array.from(activeDesksSet);
+
+                allDesks.forEach(deskName => {
+                    const servingOnDesk = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === deskName);
+                    const card = document.createElement('div');
+                    card.className = 'bg-slate-800/90 rounded-2xl p-6 border border-slate-700 shadow-inner flex flex-col justify-between text-center space-y-3';
+                    card.innerHTML = `
+                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider block">${deskName}</span>
+                        <div class="text-4xl sm:text-5xl font-extrabold text-emerald-400 font-mono latin-digits py-2">
+                            ${servingOnDesk ? servingOnDesk.id : '---'}
+                        </div>
+                        <div class="text-[11px] text-slate-400 truncate">
+                            ${servingOnDesk ? servingOnDesk.name : 'في انتظار النداء...'}
+                        </div>
+                    `;
+                    dynamicGrid.appendChild(card);
+                });
             }
 
-            // تحديث شاشة الشباك المستقلة ديناميكياً استناداً للمكتب المحدد في القائمة
             const standaloneDesk = document.getElementById('standaloneDeskFilter') ? document.getElementById('standaloneDeskFilter').value : 'مكتب 1';
             const standServing = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === standaloneDesk);
             const standTicketNum = document.getElementById('standaloneTicketNum');
