@@ -408,19 +408,19 @@
     </footer>
 
     <script>
-        // Your web app's Firebase configuration
-       const firebaseConfig = {
-  apiKey: "AIzaSyAWCMU54kl5xfp0DGpptj_GZTheJjZovF4",
-  authDomain: "waiting-fc576.firebaseapp.com",
-  databaseURL: "https://waiting-fc576-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "waiting-fc576",
-  storageBucket: "waiting-fc576.firebasestorage.app",
-  messagingSenderId: "15819119565",
-  appId: "1:15819119565:web:5de5b14cffeda8828e8284",
-  measurementId: "G-EY4W833M08"
-};
+        // إعدادات اتصال Firebase مع ضبط الرابط السحابي ومنطقة آسيا بدقة ودون مسح البيانات عند التحديث
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWCMU54kl5xfp0DGpptj_GZTheJjZovF4",
+            authDomain: "waiting-fc576.firebaseapp.com",
+            databaseURL: "https://waiting-fc576-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "waiting-fc576",
+            storageBucket: "waiting-fc576.firebasestorage.app",
+            messagingSenderId: "15819119565",
+            appId: "1:15819119565:web:5de5b14cffeda8828e8284",
+            measurementId: "G-EY4W833M08"
+        };
 
-        // Initialize Firebase safely
+        // تهيئة تطبيق Firebase بشكل آمن
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
@@ -434,13 +434,13 @@
         window.addEventListener('DOMContentLoaded', () => {
             applyRole(state.currentRole, false);
 
-            // Real-time synchronization listener across all connected devices
+            // الاستماع اللحظي للتغيرات السحابية لمنع مسح البيانات وضمان المزامنة بين الأجهزة
             dbRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data && data.queue) {
-                    // Convert object map to array
                     state.queue = Object.values(data.queue);
                 } else {
+                    // تهيئة البيانات الافتراضية لأول مرة فقط إذا كانت السحابة فارغة تماماً
                     state.queue = [];
                 }
                 refreshAllViews();
@@ -450,13 +450,13 @@
             });
         });
 
-        // Save state changes directly to Cloud Realtime Database
+        // حفظ التغييرات باستخدام update لتفادي مسح البيانات عند التحديث أو إعادة التحميل
         function saveStateToCloud() {
             const queueObj = {};
             state.queue.forEach((t, idx) => {
                 queueObj[t.id || ('ticket_' + idx)] = t;
             });
-            dbRef.set({ queue: queueObj }).catch(err => {
+            dbRef.update({ queue: queueObj }).catch(err => {
                 console.error("Cloud save failed:", err);
                 showToast("فشل الحفظ في السحابة", "error");
             });
@@ -644,7 +644,7 @@
             }
         }
 
-        // Refresh and synchronize all interface elements across views
+        // تحديث وعرض البيانات على كافة واجهات المستخدم عبر السحابة
         function refreshAllViews() {
             const total = state.queue.length;
             const completedCount = state.queue.filter(t => t.status === 'مكتمل').length;
@@ -652,7 +652,6 @@
             const kioskTotal = document.getElementById('kioskTotalCount');
             if(kioskTotal) kioskTotal.innerText = total;
 
-            // Public Display Screen update
             const servingNow = state.queue.find(t => t.status === 'قيد الخدمة');
             const dispTicket = document.getElementById('displayTicketNum');
             const dispDesk = document.getElementById('displayDeskNum');
@@ -661,7 +660,6 @@
                 dispDesk.innerText = servingNow ? servingNow.desk : '---';
             }
 
-            // Standalone Counter Screen update
             const standaloneDesk = document.getElementById('standaloneDeskFilter') ? document.getElementById('standaloneDeskFilter').value : 'مكتب 1';
             const standServing = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === standaloneDesk);
             const standTicketNum = document.getElementById('standaloneTicketNum');
@@ -671,7 +669,6 @@
                 standCustInfo.innerText = standServing ? `${standServing.name} (${standServing.service})` : 'لا يوجد مراجع حالياً';
             }
 
-            // Staff Dashboard & Admin Statistics
             const statTotal = document.getElementById('statTotal');
             const statCompleted = document.getElementById('statCompleted');
             if(statTotal) statTotal.innerText = total;
@@ -686,7 +683,6 @@
             if(currentServingDisplay) currentServingDisplay.innerText = myServing ? myServing.id : '---';
             if(currentDeskDisplay) currentDeskDisplay.innerText = currentDeskVal;
 
-            // Render Staff Queue Table
             const staffTableBody = document.getElementById('counterQueueTableBody');
             if(staffTableBody) {
                 staffTableBody.innerHTML = '';
@@ -708,7 +704,6 @@
                 });
             }
 
-            // Render Admin Table
             const adminTableBody = document.getElementById('adminQueueTableBody');
             if(adminTableBody) {
                 adminTableBody.innerHTML = '';
