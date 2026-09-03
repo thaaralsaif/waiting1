@@ -121,7 +121,6 @@
         </div>
     </header>
 
-    <!-- Main Content Container -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
 
         <!-- 1. Kiosk View -->
@@ -129,7 +128,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-5xl mx-auto w-full">
                 <div class="lg:col-span-7 bg-white rounded-3xl shadow-sm border p-6 sm:p-8">
                     <h2 class="text-2xl font-bold text-slate-900 mb-2">أهلاً بك، أدخل بياناتك للحصول على رقم الانتظار</h2>
-                    <p class="text-xs text-slate-500 mb-6">سيتم حفظ طلبك فوراً في قاعدة البيانات السحابية.</p>
+                    <p class="text-xs text-slate-500 mb-6">سيتم حفظ طلبك فوراً في قاعدة البيانات السحابية لكي يظهر لدى جميع الشاشات.</p>
                     
                     <form onsubmit="handleTicketSubmit(event); return false;" class="space-y-4">
                         <div>
@@ -167,9 +166,9 @@
                         <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
                             <i class="fa-solid fa-cloud text-xl"></i>
                         </div>
-                        <h3 class="text-xl font-bold">اتصال سحابي مباشر</h3>
+                        <h3 class="text-xl font-bold">اتصال سحابي مباشر متزامن</h3>
                         <p class="text-xs text-slate-300 leading-relaxed">
-                            جميع التذاكر والنداءات متزامنة بالكامل لحظياً عبر سحابية فايربيز لتعمل بسلاسة بين مختلف الأجهزة في المبنى.
+                            جميع التذاكر والنداءات متزامنة بالكامل لحظياً عبر سحابية فايربيز لتعمل بسلاسة بين مختلف الأجهزة في المبنى أو عن بُعد.
                         </p>
                     </div>
                     <div class="pt-6 border-t border-slate-700 flex justify-between items-center text-xs text-slate-400">
@@ -233,7 +232,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="bg-white p-6 rounded-3xl border shadow-sm space-y-3">
                         <label class="block text-xs font-bold text-slate-700">حدد رقم مكتبك الحالي:</label>
-                        <select id="activeDeskNumber" class="w-full px-4 py-3 rounded-xl border text-sm font-bold bg-slate-50">
+                        <select id="activeDeskNumber" onchange="refreshAllViews()" class="w-full px-4 py-3 rounded-xl border text-sm font-bold bg-slate-50">
                             <option value="مكتب 1">مكتب 1</option>
                             <option value="مكتب 2">مكتب 2</option>
                             <option value="مكتب 3">مكتب 3</option>
@@ -387,7 +386,7 @@
             </div>
             <div class="space-y-1">
                 <h3 class="text-xl font-extrabold text-slate-900">تم إصدار التذكرة السحابية بنجاح</h3>
-                <p class="text-xs text-slate-500">تم حفظها وإرسال إشعار SMS/WhatsApp الآلي.</p>
+                <p class="text-xs text-slate-500">تم حفظها وتحديث كافة الشاشات المربوطة بالسحابة.</p>
             </div>
             <div class="bg-slate-50 p-4 rounded-2xl border space-y-2">
                 <span class="text-xs text-slate-500 block">رقم الانتظار الخاص بك</span>
@@ -398,7 +397,6 @@
         </div>
     </div>
 
-    <!-- Notification Toast -->
     <div id="toastNotification" class="fixed bottom-6 left-6 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl z-50 text-xs flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300">
         <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
         <span id="toastMessage">تم تنفيذ العملية بنجاح</span>
@@ -409,9 +407,7 @@
         جميع الحقوق محفوظة - نظام الانتظار السحابي المتزامن لخدمة المراجعين &copy; 2026
     </footer>
 
-    <!-- JavaScript Application Logic with Firebase Realtime Database -->
     <script>
-        // Import the functions you need from the SDKs you need
         // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAWCMU54kl5xfp0DGpptj_GZTheJjZovF4",
@@ -420,10 +416,11 @@
             storageBucket: "waiting-fc576.firebasestorage.app",
             messagingSenderId: "15819119565",
             appId: "1:15819119565:web:5de5b14cffeda8828e8284",
-            measurementId: "G-EY4W833M08"
+            measurementId: "G-EY4W833M08",
+            databaseURL: "https://waiting-fc576-default-rtdb.firebaseio.com"
         };
 
-        // Initialize Firebase
+        // Initialize Firebase safely
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
@@ -437,7 +434,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             applyRole(state.currentRole, false);
 
-            // Listen to real-time database updates
+            // Real-time synchronization listener across all connected devices
             dbRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data && data.queue) {
@@ -453,8 +450,8 @@
             });
         });
 
+        // Save state changes directly to Cloud Realtime Database
         function saveStateToCloud() {
-            // Convert queue array to an object keyed by ticket ID for safe RTDB storage
             const queueObj = {};
             state.queue.forEach((t, idx) => {
                 queueObj[t.id || ('ticket_' + idx)] = t;
@@ -511,6 +508,7 @@
             } else {
                 document.getElementById('view-kiosk').classList.add('active');
             }
+            refreshAllViews();
         }
 
         function promptAdminAccess() {
@@ -577,8 +575,6 @@
             state.queue.unshift(newTicket);
             saveStateToCloud();
 
-            simulateTqnyatSend(phone, `عزيزي المراجع ${name}، تم إصدار تذكرتك رقم (${ticketId}) بنجاح. أنت في قائمة الانتظار لخدمة (${service}).`);
-
             document.getElementById('modalTicketId').innerText = ticketId;
             document.getElementById('modalTicketDetails').innerText = `${name} - ${service}`;
             document.getElementById('ticketModal').classList.remove('hidden');
@@ -612,8 +608,6 @@
             saveStateToCloud();
             
             const ticket = state.queue[waitingIndex];
-            simulateTqnyatSend(ticket.phone, `تنبيه دور: نرجو من المراجع ${ticket.name} التوجه فوراً إلى (${desk}). رقم التذكرة: ${ticket.id}`);
-            
             showToast(`تم استدعاء التذكرة ${ticket.id} إلى ${desk}`);
         }
 
@@ -625,7 +619,6 @@
                 showToast('لا توجد تذكرة قيد الخدمة حالياً على هذا المكتب', 'error');
                 return;
             }
-            simulateTqnyatSend(current.phone, `تكرار النداء: نرجو التوجه العاجل إلى (${desk}). تذكرتك: ${current.id}`);
             showToast(`تم إعادة النداء للمراجع ${current.id}`);
         }
 
@@ -651,9 +644,9 @@
             }
         }
 
+        // Refresh and synchronize all interface elements across views
         function refreshAllViews() {
             const total = state.queue.length;
-            const waitingList = state.queue.filter(t => t.status === 'انتظار');
             const completedCount = state.queue.filter(t => t.status === 'مكتمل').length;
 
             const kioskTotal = document.getElementById('kioskTotalCount');
@@ -810,10 +803,6 @@
                     showToast('تمت تصفير السجلات السحابية بنجاح');
                 });
             }
-        }
-
-        function simulateTqnyatSend(phone, message) {
-            console.log(`[Cloud WhatsApp/SMS Simulation API] Sending to ${phone}: ${message}`);
         }
 
         function showToast(message, type = 'success') {
