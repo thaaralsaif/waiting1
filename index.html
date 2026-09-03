@@ -85,8 +85,7 @@
                 <i class="fa-solid fa-lock"></i>
             </div>
             <div>
-                <h3 class="text-lg font-bold text-slate-900">أدخل رمز المرور </h3>
-                <p class="text-xs text-slate-500">رمز المدير  </p>
+                <h3 class="text-lg font-bold text-slate-900">أدخل الرمز</h3>
             </div>
             <input type="password" id="adminPinInput" placeholder="أدخل الرمز هنا" class="w-full px-4 py-3 border rounded-xl text-center text-lg latin-digits outline-none focus:ring-2 focus:ring-amber-500">
             <div class="flex gap-2">
@@ -440,7 +439,6 @@
                 if(data && data.queue) {
                     state.queue = Object.values(data.queue);
                 } else {
-                    // تهيئة البيانات الافتراضية لأول مرة فقط إذا كانت السحابة فارغة تماماً
                     state.queue = [];
                 }
                 refreshAllViews();
@@ -517,8 +515,8 @@
                 document.getElementById('adminUnlockModal').classList.remove('hidden');
                 window.pendingAction = 'adminPanel';
             } else {
-                const pass = prompt('يرجى إدخال كلمة مرور المدير (الافتراضي: 1234):');
-                if(pass === '1234') {
+                const pass = prompt('يرجى إدخال كلمة مرور المدير:');
+                if(pass === '66434984') {
                     applyRole('admin', false);
                 } else if(pass !== null) {
                     showToast('كلمة المرور غير صحيحة', 'error');
@@ -528,7 +526,7 @@
 
         function verifyAdminUnlock() {
             const pin = document.getElementById('adminPinInput').value;
-            if(pin === '1234') {
+            if(pin === '66434984') {
                 document.getElementById('adminUnlockModal').classList.add('hidden');
                 document.getElementById('adminPinInput').value = '';
                 localStorage.removeItem('locked_role');
@@ -587,28 +585,41 @@
         }
 
         function callNextTicket() {
-            const activeDeskSel = document.getElementById('activeDeskNumber');
-            const desk = activeDeskSel ? activeDeskSel.value : 'مكتب 1';
-
-            const waitingIndex = state.queue.findIndex(t => t.status === 'انتظار');
-            if(waitingIndex === -1) {
+            // التعديل هنا: التحديد التلقائي للمكتب التالي بشكل دوري وآلي من 1 إلى 4 بناءً على الدور الحالي
+            const waitingList = state.queue.filter(t => t.status === 'انتظار');
+            if(waitingList.length === 0) {
                 showToast('لا توجد تذاكر في قائمة الانتظار حالياً', 'error');
                 return;
             }
 
+            // حساب المكتب التالي تلقائياً (توزيع دوري بين مكتب 1 إلى 4)
+            const activeServing = state.queue.filter(t => t.status === 'قيد الخدمة');
+            const nextDeskNumber = (activeServing.length % 4) + 1;
+            const autoDesk = `مكتب ${nextDeskNumber}`;
+
+            // تحديث اختيار الموظف إن وجد ليتطابق مع المكتب المعين آلياً
+            const activeDeskSel = document.getElementById('activeDeskNumber');
+            if(activeDeskSel) {
+                activeDeskSel.value = autoDesk;
+            }
+
+            // إنهاء أي تذكرة قديمة قيد الخدمة على نفس المكتب المعين آلياً
             state.queue.forEach(t => {
-                if(t.status === 'قيد الخدمة' && t.desk === desk) {
+                if(t.status === 'قيد الخدمة' && t.desk === autoDesk) {
                     t.status = 'مكتمل';
                 }
             });
 
-            state.queue[waitingIndex].status = 'قيد الخدمة';
-            state.queue[waitingIndex].desk = desk;
+            // تعيين أول تذكرة انتظار للمكتب الجديد وتغيير حالتها تلقائياً
+            const nextTicket = waitingList[0];
+            const targetTicket = state.queue.find(t => t.id === nextTicket.id);
+            if(targetTicket) {
+                targetTicket.status = 'قيد الخدمة';
+                targetTicket.desk = autoDesk;
+            }
 
             saveStateToCloud();
-            
-            const ticket = state.queue[waitingIndex];
-            showToast(`تم استدعاء التذكرة ${ticket.id} إلى ${desk}`);
+            showToast(`تم استدعاء التذكرة ${nextTicket.id} إلى ${autoDesk} تلقائياً`);
         }
 
         function repeatCurrentCall() {
