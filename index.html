@@ -198,16 +198,6 @@
                     <div id="ticket-number-display" class="text-6xl font-extrabold text-emerald-400 font-mono latin-digits">---</div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 hidden">
-                    <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner flex flex-col justify-center">
-                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider block mb-2">رقم المكتب المخصص</span>
-                        <div id="displayDeskNum" class="text-6xl font-extrabold text-white font-mono latin-digits py-4">---</div>
-                    </div>
-                    <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner flex flex-col justify-center">
-                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-2">رقم التذكرة الحالي</span>
-                        <div id="displayTicketNum" class="text-6xl font-extrabold text-emerald-400 font-mono latin-digits py-4">---</div>
-                    </div>
-                </div>
                 <div class="pt-4 border-t border-slate-800 flex justify-between items-center px-2 text-xs text-slate-400">
                     <span>نرجو التوجه فوراً للمكتب عند نداء الرقم.</span>
                     <button onclick="lockScreenToRole('display')" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-lock"></i> تثبيت وعزل الشاشة</button>
@@ -612,6 +602,7 @@
             const activeDeskSel = document.getElementById('activeDeskNumber');
             const autoDesk = activeDeskSel ? activeDeskSel.value : 'مكتب 1';
 
+            // إنهاء أي تذكرة كانت قيد الخدمة على نفس المكتب تلقائياً
             state.queue.forEach(t => {
                 if(t.status === 'قيد الخدمة' && t.desk === autoDesk) {
                     t.status = 'مكتمل';
@@ -669,23 +660,18 @@
             const kioskTotal = document.getElementById('kioskTotalCount');
             if(kioskTotal) kioskTotal.innerText = total;
 
+            // جلب أحدث تذكرة حالية قيد الخدمة عبر النظام (أو حسب المكاتب) لتحديث الشاشة الكبرى تلقائياً
             const servingNow = state.queue.find(t => t.status === 'قيد الخدمة');
             
-            // ربط عناصر الحاوية المضافة حديثاً لتحديث رقم المكتب والتذكرة المتزامنة فورياً
+            // ربط وعرض بيانات المكتب ورقم التذكرة المتزامن للحاوية المطلوبة
             const officeNameDisplay = document.getElementById('office-name-display');
             const ticketNumberDisplay = document.getElementById('ticket-number-display');
             if (officeNameDisplay && ticketNumberDisplay) {
-                officeNameDisplay.innerText = servingNow ? servingNow.desk : 'مكتب غير محدد';
+                officeNameDisplay.innerText = servingNow ? servingNow.desk : 'في انتظار النداء';
                 ticketNumberDisplay.innerText = servingNow ? servingNow.id : '---';
             }
 
-            const dispTicket = document.getElementById('displayTicketNum');
-            const dispDesk = document.getElementById('displayDeskNum');
-            if(dispTicket && dispDesk) {
-                dispTicket.innerText = servingNow ? servingNow.id : '---';
-                dispDesk.innerText = servingNow ? servingNow.desk : '---';
-            }
-
+            // تحديث شاشة الشباك المستقلة حسب المكتب المحدد في القائمة المنسدلة لشاشة الشباك
             const standaloneDesk = document.getElementById('standaloneDeskFilter') ? document.getElementById('standaloneDeskFilter').value : 'مكتب 1';
             const standServing = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === standaloneDesk);
             const standTicketNum = document.getElementById('standaloneTicketNum');
@@ -703,6 +689,7 @@
             if(statTotal) statTotal.innerText = total;
             if(statCompleted) statCompleted.innerText = completedCount;
 
+            // تحديث لوحة تحكم الموظف بناءً على المكتب المختار من قِبل الموظف
             const currentServingDisplay = document.getElementById('currentServingDisplay');
             const currentDeskDisplay = document.getElementById('currentDeskDisplay');
             const activeDeskSel = document.getElementById('activeDeskNumber');
@@ -712,6 +699,7 @@
             if(currentServingDisplay) currentServingDisplay.innerText = myServing ? myServing.id : '---';
             if(currentDeskDisplay) currentDeskDisplay.innerText = currentDeskVal;
 
+            // جدول طابور الانتظار في لوحة الموظف
             const staffTableBody = document.getElementById('counterQueueTableBody');
             if(staffTableBody) {
                 staffTableBody.innerHTML = '';
@@ -733,6 +721,7 @@
                 });
             }
 
+            // جدول سجل الإدارة العامة
             const adminTableBody = document.getElementById('adminQueueTableBody');
             if(adminTableBody) {
                 adminTableBody.innerHTML = '';
