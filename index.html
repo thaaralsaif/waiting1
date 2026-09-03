@@ -189,13 +189,14 @@
                     <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30">متصل بالسحابة مباشر</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                    <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner">
-                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-2">رقم التذكرة الحالي</span>
-                        <div id="displayTicketNum" class="text-7xl font-extrabold text-emerald-400 font-mono latin-digits py-4">---</div>
-                    </div>
-                    <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner">
+                    <!-- تم تعديل العرض ليطابق تصميم الصورة بدقة ليعكس التحديث التلقائي التام -->
+                    <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner flex flex-col justify-center">
                         <span class="text-xs font-bold text-sky-400 uppercase tracking-wider block mb-2">رقم المكتب المخصص</span>
-                        <div id="displayDeskNum" class="text-7xl font-extrabold text-sky-300 font-mono latin-digits py-4">---</div>
+                        <div id="displayDeskNum" class="text-6xl font-extrabold text-white font-mono latin-digits py-4">مكتب 1</div>
+                    </div>
+                    <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner flex flex-col justify-center">
+                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-2">رقم التذكرة الحالي</span>
+                        <div id="displayTicketNum" class="text-6xl font-extrabold text-emerald-400 font-mono latin-digits py-4">A-102</div>
                     </div>
                 </div>
                 <div class="pt-4 border-t border-slate-800 flex justify-between items-center px-2 text-xs text-slate-400">
@@ -644,7 +645,7 @@
             }
         }
 
-        // تحديث وعرض البيانات على كافة واجهات المستخدم عبر السحابة
+        // تحديث وعرض البيانات على كافة واجهات المستخدم عبر السحابة وتحديث الشاشة الكبرى تلقائياً
         function refreshAllViews() {
             const total = state.queue.length;
             const completedCount = state.queue.filter(t => t.status === 'مكتمل').length;
@@ -652,7 +653,7 @@
             const kioskTotal = document.getElementById('kioskTotalCount');
             if(kioskTotal) kioskTotal.innerText = total;
 
-            // شاشة العرض الكبرى تعتمد على آخر تذكرة تم استدعاؤها وقيد الخدمة
+            // شاشة العرض الكبرى تعتمد على آخر تذكرة قيد الخدمة لتعكس رقم التذكرة والمكتب بشكل متزامن تماماً
             const servingNow = state.queue.find(t => t.status === 'قيد الخدمة');
             const dispTicket = document.getElementById('displayTicketNum');
             const dispDesk = document.getElementById('displayDeskNum');
@@ -661,7 +662,7 @@
                 dispDesk.innerText = servingNow ? servingNow.desk : '---';
             }
 
-            // شاشة الشباك المستقلة تتغير تلقائياً بحسب المكتب المختار في القائمة المنسدلة وتظهر الرقم فقط دون اسم المراجع
+            // شاشة الشباك المستقلة تتغير تلقائياً بحسب المكتب المختار
             const standaloneDesk = document.getElementById('standaloneDeskFilter') ? document.getElementById('standaloneDeskFilter').value : 'مكتب 1';
             const standServing = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === standaloneDesk);
             const standTicketNum = document.getElementById('standaloneTicketNum');
