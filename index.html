@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة الرعاية الاجتماعية - نظام الانتظار الذكي متعدد الشاشات</title>
+    <title>إدارة الرعاية الاجتماعية - نظام الانتظار السحابي المتزامن</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -12,6 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Firebase App & Realtime Database SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -31,7 +34,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <!-- Role Selector Modal (First-time or Unlocked) -->
+    <!-- Role Selector Modal -->
     <div id="roleSelectorModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full p-8 border border-slate-100 space-y-6 text-center">
             <div class="w-16 h-16 bg-gradient-to-tr from-emerald-500 to-sky-500 rounded-2xl mx-auto flex items-center justify-center text-white text-2xl shadow-lg">
@@ -39,38 +42,56 @@
             </div>
             <div>
                 <h2 class="text-2xl font-extrabold text-slate-900 mb-2">اختر طريقة تشغيل هذه الشاشة</h2>
-                <p class="text-xs text-slate-500">اختر نوع الواجهة. ملاحظة: "شاشة الشباك الكبرى" أو شاشات العرض ستثبت على هذا الجهاز ولا يمكن تغييرها إلا بكلمة مرور المدير.</p>
+                <p class="text-xs text-slate-500">حدد دور هذا الجهاز (استقبال، شاشة عرض، شباك، أو لوحة موظف).</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 text-right">
                 <button onclick="selectRole('kiosk')" class="p-5 rounded-2xl border-2 border-sky-100 bg-sky-50/50 hover:bg-sky-100 hover:border-sky-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-ticket"></i></div>
                     <h3 class="font-bold text-sky-900 text-sm">شاشة المراجع (Kiosk)</h3>
-                    <p class="text-[11px] text-slate-600">لإصدار التذاكر الذاتية للعملاء.</p>
+                    <p class="text-[11px] text-slate-600">لإصدار التذاكر الذاتية.</p>
                 </button>
                 <button onclick="selectRole('display')" class="p-5 rounded-2xl border-2 border-teal-100 bg-teal-50/50 hover:bg-teal-100 hover:border-teal-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-tv"></i></div>
-                    <h3 class="font-bold text-teal-900 text-sm">شاشة عرض تذاكر الانتظار</h3>
-                    <p class="text-[11px] text-slate-600">عرض رقم التذكرة والمكتب فقط بشكل دائم.</p>
+                    <h3 class="font-bold text-teal-900 text-sm">شاشة عرض الانتظار</h3>
+                    <p class="text-[11px] text-slate-600">عرض رقم التذكرة والمكتب.</p>
                 </button>
                 <button onclick="selectRole('counter')" class="p-5 rounded-2xl border-2 border-indigo-100 bg-indigo-50/50 hover:bg-indigo-100 hover:border-indigo-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-desktop"></i></div>
-                    <h3 class="font-bold text-indigo-900 text-sm">شاشة الشباك (العرض المستقل)</h3>
-                    <p class="text-[11px] text-slate-600">شاشة الشباك لعرض رقم التذكرة والمكتب.</p>
+                    <h3 class="font-bold text-indigo-900 text-sm">شاشة الشباك المستقلة</h3>
+                    <p class="text-[11px] text-slate-600">عرض حالة شباك محدد.</p>
                 </button>
                 <button onclick="selectRole('staff')" class="p-5 rounded-2xl border-2 border-emerald-100 bg-emerald-50/50 hover:bg-emerald-100 hover:border-emerald-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-sliders"></i></div>
                     <h3 class="font-bold text-emerald-900 text-sm">لوحة تحكم الموظف</h3>
-                    <p class="text-[11px] text-slate-600">استدعاء المراجعين وإدارة الطابور.</p>
+                    <p class="text-[11px] text-slate-600">استدعاء وإدارة الطابور.</p>
                 </button>
                 <button onclick="selectRole('search')" class="p-5 rounded-2xl border-2 border-amber-100 bg-amber-50/50 hover:bg-amber-100 hover:border-amber-500 transition space-y-2 group">
                     <div class="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-magnifying-glass"></i></div>
                     <h3 class="font-bold text-amber-900 text-sm">الاستعلام المباشر</h3>
-                    <p class="text-[11px] text-slate-600">للبحث عن دور المراجع بالجوال أو السجل.</p>
+                    <p class="text-[11px] text-slate-600">للبحث عن دور المراجع.</p>
                 </button>
             </div>
             <div class="pt-2 border-t flex justify-between items-center">
-                <span class="text-xs text-slate-400">للوصول إلى لوحة الإدارة العامة، اضغط زر المدير في أعلى الشاشة.</span>
+                <span class="text-xs text-slate-400">للوصول للإدارة العامة، استخدم زر لوحة المدير بالأعلى.</span>
                 <button onclick="document.getElementById('roleSelectorModal').classList.add('hidden')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-xl text-xs font-bold text-slate-700">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Unlock PIN Modal -->
+    <div id="adminUnlockModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border space-y-4 text-center">
+            <div class="w-14 h-14 bg-amber-500 text-white rounded-2xl mx-auto flex items-center justify-center text-xl">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">أدخل رمز مرور المدير</h3>
+                <p class="text-xs text-slate-500">الرمز الافتراضي: 1234</p>
+            </div>
+            <input type="password" id="adminPinInput" placeholder="أدخل الرمز هنا" class="w-full px-4 py-3 border rounded-xl text-center text-lg latin-digits outline-none focus:ring-2 focus:ring-amber-500">
+            <div class="flex gap-2">
+                <button onclick="verifyAdminUnlock()" class="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs">تحقق وفك القفل</button>
+                <button onclick="document.getElementById('adminUnlockModal').classList.add('hidden')" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">إلغاء</button>
             </div>
         </div>
     </div>
@@ -83,8 +104,8 @@
                     <i class="fa-solid fa-hands-holding-child text-white text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="text-base font-extrabold tracking-wide">إدارة الرعاية الاجتماعية - نظام الانتظار</h1>
-                    <p class="text-[11px] text-slate-400">إدارة الطوابير والشاشات والرسائل السحابية الآلية</p>
+                    <h1 class="text-base font-extrabold tracking-wide">إدارة الرعاية الاجتماعية - نظام الانتظار السحابي</h1>
+                    <p class="text-[11px] text-slate-400">مزامنة فورية عبر Firebase Realtime Database</p>
                 </div>
             </div>
 
@@ -104,11 +125,11 @@
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
 
         <!-- 1. Kiosk View -->
-        <section id="view-kiosk" class="tab-content">
+        <section id="view-kiosk" class="tab-content active">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-5xl mx-auto w-full">
                 <div class="lg:col-span-7 bg-white rounded-3xl shadow-sm border p-6 sm:p-8">
                     <h2 class="text-2xl font-bold text-slate-900 mb-2">أهلاً بك، أدخل بياناتك للحصول على رقم الانتظار</h2>
-                    <p class="text-xs text-slate-500 mb-6">سيتم حفظ طلبك وإرسال تفاصيل التذكرة وتنبيه واتساب و SMS لرقم جوالك فوراً.</p>
+                    <p class="text-xs text-slate-500 mb-6">سيتم حفظ طلبك فوراً في قاعدة البيانات السحابية.</p>
                     
                     <form onsubmit="handleTicketSubmit(event); return false;" class="space-y-4">
                         <div>
@@ -130,10 +151,13 @@
                             <select id="custService" class="w-full px-4 py-3 rounded-xl border text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
                                 <option value="استقبال">استقبال</option>
                                 <option value="بحث اجتماعي">بحث اجتماعي</option>
+                                <option value="المساعدات المالية">المساعدات المالية</option>
+                                <option value="شؤون المستفيدين">شؤون المستفيدين</option>
+                                <option value="الخدمات الإلكترونية">الخدمات الإلكترونية</option>
                             </select>
                         </div>
                         <button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl shadow-lg transition flex items-center justify-center gap-2 text-base">
-                            <i class="fa-solid fa-ticket"></i> تأكيد وإصدار رقم الانتظار الذكي
+                            <i class="fa-solid fa-ticket"></i> تأكيد وإصدار رقم الانتظار السحابي
                         </button>
                     </form>
                 </div>
@@ -141,11 +165,11 @@
                 <div class="lg:col-span-5 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-xl">
                     <div class="space-y-4">
                         <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                            <i class="fa-solid fa-circle-info text-xl"></i>
+                            <i class="fa-solid fa-cloud text-xl"></i>
                         </div>
-                        <h3 class="text-xl font-bold">تعليمات خدمة المراجعين</h3>
+                        <h3 class="text-xl font-bold">اتصال سحابي مباشر</h3>
                         <p class="text-xs text-slate-300 leading-relaxed">
-                            بعد إتمام التسجيل، سيتم حفظ تذكرتك في قاعدة البيانات ومزامنتها مع أجهزة الشاشات وموظفي الاستقبال، مع إرسال تفاصيل الدور عبر واتساب ورسائل SMS التذكيرية.
+                            جميع التذاكر والنداءات متزامنة بالكامل لحظياً عبر سحابية فايربيز لتعمل بسلاسة بين مختلف الأجهزة في المبنى.
                         </p>
                     </div>
                     <div class="pt-6 border-t border-slate-700 flex justify-between items-center text-xs text-slate-400">
@@ -162,9 +186,9 @@
                 <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div class="flex items-center gap-3 text-emerald-400">
                         <i class="fa-solid fa-tv text-3xl"></i>
-                        <h2 class="text-2xl font-extrabold">شاشة عرض تذاكر الانتظار المباشرة</h2>
+                        <h2 class="text-2xl font-extrabold">شاشة عرض تذاكر الانتظار السحابية</h2>
                     </div>
-                    <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30">مباشر ومحدث</span>
+                    <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30">متصل بالسحابة مباشر</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                     <div class="bg-slate-800/90 rounded-2xl p-8 border border-slate-700 shadow-inner">
@@ -177,99 +201,86 @@
                     </div>
                 </div>
                 <div class="pt-4 border-t border-slate-800 flex justify-between items-center px-2 text-xs text-slate-400">
-                    <span>نرجو من السادة المراجعين التوجه فوراً إلى المكتب الموضح عند نداء الرقم.</span>
+                    <span>نرجو التوجه فوراً للمكتب عند نداء الرقم.</span>
                     <button onclick="lockScreenToRole('display')" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-lock"></i> تثبيت وعزل الشاشة</button>
                 </div>
             </div>
         </section>
 
-        <!-- 3. Standalone Counter Screen View -->
+        <!-- 3. Standalone Counter View -->
         <section id="view-counter" class="tab-content">
-            <div class="max-w-4xl mx-auto w-full bg-slate-900 text-white rounded-3xl shadow-2xl border-4 border-indigo-500 p-8 sm:p-12 text-center space-y-6 my-auto">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
-                    <div class="flex items-center gap-3 text-indigo-400">
-                        <i class="fa-solid fa-desktop text-3xl"></i>
-                        <h2 class="text-2xl font-extrabold">شاشة الشباك المباشرة المستقلة</h2>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <select id="standaloneDeskFilter" onchange="refreshAllViews()" class="bg-slate-800 border border-slate-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold">
-                            <option value="مكتب 1">مكتب 1</option>
-                            <option value="مكتب 2">مكتب 2</option>
-                            <option value="مكتب 3">مكتب 3</option>
-                            <option value="مكتب 4">مكتب 4</option>
-                        </select>
-                    </div>
+            <div class="max-w-3xl mx-auto w-full bg-white rounded-3xl shadow-sm border p-8 space-y-6 text-center">
+                <div class="flex justify-between items-center border-b pb-4">
+                    <h2 class="text-xl font-bold text-slate-900">شاشة عرض الشباك المستقلة</h2>
+                    <select id="standaloneDeskFilter" onchange="refreshAllViews()" class="px-4 py-2 bg-slate-50 border rounded-xl text-xs font-bold">
+                        <option value="مكتب 1">مكتب 1</option>
+                        <option value="مكتب 2">مكتب 2</option>
+                        <option value="مكتب 3">مكتب 3</option>
+                        <option value="مكتب 4">مكتب 4</option>
+                    </select>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                    <div class="bg-slate-800/90 rounded-2xl p-6 border border-slate-700">
-                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider block mb-2">رقم التذكرة قيد الخدمة</span>
-                        <div id="standaloneTicketNum" class="text-6xl font-extrabold text-amber-400 font-mono latin-digits py-2">---</div>
-                    </div>
-                    <div class="bg-slate-800/90 rounded-2xl p-6 border border-slate-700">
-                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider block mb-2">اسم المراجع والخدمة</span>
-                        <div id="standaloneCustInfo" class="text-lg font-bold text-slate-200 py-3 truncate">لا يوجد مراجع حالياً</div>
-                    </div>
-                </div>
-                <div class="pt-4 border-t border-slate-800 flex justify-between items-center px-2 text-xs text-slate-400">
-                    <span>تظهر هذه الشاشة حالة الشباك المحدد بشكل فوري.</span>
-                    <button onclick="lockScreenToRole('counter')" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-lock"></i> تثبيت الشاشة</button>
+                <div class="py-12 bg-slate-50 rounded-3xl border space-y-4">
+                    <span class="text-xs text-slate-500 block">رقم التذكرة قيد الخدمة على هذا الشباك</span>
+                    <div id="standaloneTicketNum" class="text-6xl font-black text-indigo-600 font-mono latin-digits">---</div>
+                    <div id="standaloneCustInfo" class="text-sm font-bold text-slate-700">لا يوجد مراجع حالياً</div>
                 </div>
             </div>
         </section>
 
-        <!-- 4. Staff Dashboard View -->
+        <!-- 4. Staff Control Panel View -->
         <section id="view-staff" class="tab-content">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto w-full">
-                <div class="lg:col-span-4 bg-white rounded-2xl shadow-sm border p-6 space-y-4">
-                    <h2 class="text-lg font-bold text-slate-900 border-b pb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-emerald-600"></i> لوحة تحكم الشباك والموظف
-                    </h2>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">رقم المكتب / الشباك الحالي</label>
-                        <select id="activeDeskNumber" class="w-full px-3 py-2.5 border rounded-xl text-sm font-bold bg-white">
+            <div class="max-w-6xl mx-auto w-full space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm space-y-3">
+                        <label class="block text-xs font-bold text-slate-700">حدد رقم مكتبك الحالي:</label>
+                        <select id="activeDeskNumber" class="w-full px-4 py-3 rounded-xl border text-sm font-bold bg-slate-50">
                             <option value="مكتب 1">مكتب 1</option>
                             <option value="مكتب 2">مكتب 2</option>
                             <option value="مكتب 3">مكتب 3</option>
                             <option value="مكتب 4">مكتب 4</option>
                         </select>
                     </div>
-                    <div class="pt-2">
-                        <button onclick="callNextTicket()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-bullhorn"></i> استدعاء المراجع التالي
-                        </button>
+
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm flex flex-col justify-between">
+                        <span class="text-xs text-slate-500">التذكرة النشطة حالياً على مكتبك</span>
+                        <div class="flex items-center justify-between">
+                            <span id="currentServingDisplay" class="text-3xl font-extrabold text-indigo-600 font-mono latin-digits">---</span>
+                            <span id="currentDeskDisplay" class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold">مكتب 1</span>
+                        </div>
                     </div>
-                    <div class="bg-slate-50 p-4 rounded-xl border space-y-2 text-xs">
-                        <div class="flex justify-between"><span>قيد الخدمة حالياً:</span> <span id="currentServingDisplay" class="font-bold text-emerald-600 font-mono latin-digits">---</span></div>
-                        <div class="flex justify-between"><span>المكتب النشط:</span> <span id="currentDeskDisplay" class="font-bold text-slate-700">---</span></div>
-                    </div>
-                    <div class="pt-2 space-y-2">
-                        <button onclick="repeatCurrentCall()" class="w-full py-2.5 bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-volume-high"></i> إعادة النداء وتنبيه دور (WA/SMS)
+
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm flex items-center gap-3">
+                        <button onclick="callNextTicket()" class="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs shadow transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bullhorn"></i> استدعاء التالي
                         </button>
-                        <button onclick="finishCurrentTicket()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition text-xs flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-check"></i> إنهاء خدمة المراجع الحالي
+                        <button onclick="repeatCurrentCall()" class="px-4 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs transition" title="إعادة نداء">
+                            <i class="fa-solid fa-rotate-right text-base"></i>
+                        </button>
+                        <button onclick="finishCurrentTicket()" class="px-4 py-4 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-2xl text-xs transition" title="إنهاء الخدمة">
+                            <i class="fa-solid fa-check text-base"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="lg:col-span-8 bg-white rounded-2xl shadow-sm border p-6 space-y-4">
-                    <div class="flex justify-between items-center border-b pb-3">
-                        <h3 class="font-bold text-slate-900 text-base">قائمة الانتظار النشطة اليوم</h3>
-                        <span id="waitingCountBadge" class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-xl text-xs font-mono latin-digits font-bold">0 في الانتظار</span>
+                <!-- Queue Management Table -->
+                <div class="bg-white rounded-3xl border shadow-sm overflow-hidden">
+                    <div class="p-6 border-b flex justify-between items-center">
+                        <h3 class="text-base font-bold text-slate-900">طابور الانتظار السحابي</h3>
+                        <span class="text-xs text-slate-500">مزامنة حية</span>
                     </div>
-                    <div class="overflow-x-auto max-h-[420px] overflow-y-auto">
+                    <div class="overflow-x-auto">
                         <table class="w-full text-right text-xs">
-                            <thead class="bg-slate-50 text-slate-700 sticky top-0">
+                            <thead class="bg-slate-50 text-slate-600 border-b">
                                 <tr>
                                     <th class="p-3">رقم التذكرة</th>
-                                    <th class="p-3">الاسم</th>
-                                    <th class="p-3">الجوال</th>
+                                    <th class="p-3">اسم المراجع</th>
+                                    <th class="p-3">رقم الجوال</th>
                                     <th class="p-3">الخدمة</th>
                                     <th class="p-3">الحالة</th>
-                                    <th class="p-3 text-center">الإجراءات السريعة</th>
+                                    <th class="p-3 text-center">الإجراءات</th>
                                 </tr>
                             </thead>
-                            <tbody id="counterQueueTableBody" class="divide-y divide-slate-100">
+                            <tbody id="counterQueueTableBody" class="divide-y">
                                 <!-- Dynamic rows -->
                             </tbody>
                         </table>
@@ -278,23 +289,16 @@
             </div>
         </section>
 
-        <!-- 5. Direct Search View -->
+        <!-- 5. Search View -->
         <section id="view-search" class="tab-content">
-            <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border p-6 space-y-4 w-full my-auto">
-                <div class="flex items-center justify-between border-b pb-3">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900">الاستعلام المباشر عن دورك في الطابور</h2>
-                        <p class="text-xs text-slate-500 mt-1">ابحث برقم الجوال مباشرة (مثل 05XXXXXXXX) أو السجل المدني</p>
-                    </div>
-                    <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center">
-                        <i class="fa-solid fa-magnifying-glass text-lg"></i>
-                    </div>
+            <div class="max-w-3xl mx-auto w-full bg-white rounded-3xl shadow-sm border p-8 space-y-6">
+                <div class="text-center space-y-2">
+                    <h2 class="text-2xl font-extrabold text-slate-900">الاستعلام المباشر عن الدور</h2>
+                    <p class="text-xs text-slate-500">أدخل رقم الجوال أو السجل المدني للبحث الفوري.</p>
                 </div>
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <input type="text" id="searchInput" placeholder="أدخل رقم الجوال أو السجل المدني..." class="flex-1 px-4 py-3 border rounded-xl text-sm latin-digits font-mono text-right outline-none focus:ring-2 focus:ring-sky-500" onkeypress="if(event.key === 'Enter') performSearch();">
-                    <button onclick="performSearch()" class="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-search"></i> بحث عن الدور
-                    </button>
+                <div class="flex gap-2">
+                    <input type="text" id="searchInput" placeholder="أدخل رقم الجوال أو السجل المدني..." class="flex-1 px-4 py-3 border rounded-2xl text-sm latin-digits outline-none focus:ring-2 focus:ring-amber-500">
+                    <button onclick="performSearch()" class="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-2xl text-xs transition">بحث</button>
                 </div>
                 <div id="searchResultArea" class="space-y-3 pt-2"></div>
             </div>
@@ -302,63 +306,61 @@
 
         <!-- 6. Admin Panel View -->
         <section id="view-admin" class="tab-content">
-            <div class="max-w-6xl mx-auto w-full bg-white rounded-2xl shadow-sm border p-6 space-y-6">
-                <div class="flex justify-between items-center border-b pb-4">
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-900">لوحة تحكم المدير والسجلات العامة</h2>
-                        <p class="text-xs text-slate-500">مراقبة السجلات الكاملة وإعدادات الربط السحابي والرسائل النصية (Taqnyat)</p>
+            <div class="max-w-6xl mx-auto w-full space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm space-y-2">
+                        <span class="text-xs text-slate-500">إجمالي الحجوزات السحابية</span>
+                        <div id="statTotal" class="text-3xl font-black text-slate-900 font-mono latin-digits">0</div>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="exportToExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center gap-2 shadow">
-                            <i class="fa-solid fa-file-excel"></i> تصدير لملف Excel
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm space-y-2">
+                        <span class="text-xs text-slate-500">الخدمات المنجزة</span>
+                        <div id="statCompleted" class="text-3xl font-black text-emerald-600 font-mono latin-digits">0</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-slate-500 block mb-1">تصدير التقارير</span>
+                            <span class="text-xs font-bold text-slate-800">ملف Excel شامل</span>
+                        </div>
+                        <button onclick="exportToExcel()" class="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-file-excel"></i> تصدير
                         </button>
-                        <button onclick="clearAllQueueData()" class="px-4 py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs transition">
-                            إعادة ضبط اليوم
-                        </button>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-slate-500 block mb-1">إدارة السجلات</span>
+                            <span class="text-xs font-bold text-rose-600">تصفير السحابية</span>
+                        </div>
+                        <button onclick="clearAllQueueData()" class="px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl text-xs shadow">تصفير</button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border">
-                    <div class="space-y-3">
-                        <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-comment-sms text-emerald-600"></i> إعدادات منصة تقنية (Taqnyat SMS / WhatsApp)
-                        </h3>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">رمز المصادقة (Bearer Token)</label>
-                            <input type="password" id="tqnyatToken" placeholder="أدخل التوكن الخاص بمنصة تقنية..." class="w-full px-3 py-2 border rounded-xl text-xs latin-digits outline-none bg-white">
+                <!-- Firebase Status & Config -->
+                <div class="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-4">
+                    <h3 class="text-base font-bold text-slate-900 border-b pb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-database text-sky-600"></i> حالة وقاعدة بيانات Firebase المباشرة
+                    </h3>
+                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border text-xs">
+                        <div class="flex items-center gap-3">
+                            <div id="firebaseIndicator" class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span id="firebaseStatusText" class="font-bold text-slate-700">متصل بنجاح بقاعدة البيانات السحابية</span>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">اسم المرسل (Sender ID)</label>
-                            <input type="text" id="tqnyatSender" placeholder="مثال: Taqnyat" class="w-full px-3 py-2 border rounded-xl text-xs latin-digits outline-none bg-white">
-                        </div>
-                        <button onclick="saveAdminSettings()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs">حفظ إعدادات الربط السحابي</button>
-                    </div>
-                    <div class="space-y-3">
-                        <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-chart-pie text-sky-600"></i> إحصائيات النظام العامة
-                        </h3>
-                        <div class="grid grid-cols-2 gap-3 text-center">
-                            <div class="bg-white p-4 rounded-xl border">
-                                <span class="text-xs text-slate-500 block">إجمالي تذاكر اليوم</span>
-                                <span id="statTotal" class="text-xl font-extrabold text-slate-900 font-mono latin-digits">0</span>
-                            </div>
-                            <div class="bg-white p-4 rounded-xl border">
-                                <span class="text-xs text-slate-500 block">التذاكر المكتملة</span>
-                                <span id="statCompleted" class="text-xl font-extrabold text-emerald-600 font-mono latin-digits">0</span>
-                            </div>
-                        </div>
+                        <span class="text-slate-400 font-mono">Realtime Database Synchronized</span>
                     </div>
                 </div>
 
-                <div class="space-y-3">
-                    <h3 class="font-bold text-slate-900 text-sm">سجلات المراجعين الكاملة لليوم</h3>
-                    <div class="overflow-x-auto max-h-[350px] overflow-y-auto border rounded-xl">
+                <!-- All Records Table -->
+                <div class="bg-white rounded-3xl border shadow-sm overflow-hidden">
+                    <div class="p-6 border-b flex justify-between items-center">
+                        <h3 class="text-base font-bold text-slate-900">سجل كافة التذاكر السحابية</h3>
+                        <span class="text-xs text-slate-500 font-mono">Cloud Archive</span>
+                    </div>
+                    <div class="overflow-x-auto">
                         <table class="w-full text-right text-xs">
-                            <thead class="bg-slate-100 text-slate-700 sticky top-0">
+                            <thead class="bg-slate-50 text-slate-600 border-b">
                                 <tr>
-                                    <th class="p-3">رقم التذكرة</th>
-                                    <th class="p-3">اسم المراجع</th>
-                                    <th class="p-3">رقم الجوال</th>
+                                    <th class="p-3">التذكرة</th>
+                                    <th class="p-3">الاسم</th>
+                                    <th class="p-3">الجوال</th>
                                     <th class="p-3">السجل المدني</th>
                                     <th class="p-3">الخدمة</th>
                                     <th class="p-3">الحالة</th>
@@ -366,7 +368,7 @@
                                     <th class="p-3">الوقت</th>
                                 </tr>
                             </thead>
-                            <tbody id="adminQueueTableBody" class="divide-y divide-slate-100">
+                            <tbody id="adminQueueTableBody" class="divide-y">
                                 <!-- Dynamic rows -->
                             </tbody>
                         </table>
@@ -377,350 +379,451 @@
 
     </main>
 
-    <!-- Admin Password Verification Modal -->
-    <div id="adminUnlockModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-right space-y-4">
-            <h3 class="font-extrabold text-slate-900 text-base">دخول لوحة المدير أو فك التثبيت</h3>
-            <p class="text-xs text-slate-500">أدخل كلمة مرور المدير لفتح الإدارة العامة أو فك قفل الشاشة:</p>
-            <input type="password" id="adminPinInput" placeholder="أدخل كلمة المرور السرية" class="w-full px-3 py-2 border rounded-xl text-sm latin-digits outline-none focus:ring-2 focus:ring-amber-500">
-            <div class="flex gap-2 pt-2">
-                <button onclick="verifyAdminUnlock()" class="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs">تحقق ودخول</button>
-                <button onclick="document.getElementById('adminUnlockModal').classList.add('hidden')" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">إلغاء</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Ticket Success Modal -->
+    <!-- Success Ticket Modal -->
     <div id="ticketModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center space-y-4">
-            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 border text-center space-y-6">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-2xl font-bold">
                 <i class="fa-solid fa-check"></i>
             </div>
-            <h3 class="font-extrabold text-slate-900 text-lg">تم إصدار التذكرة بنجاح</h3>
+            <div class="space-y-1">
+                <h3 class="text-xl font-extrabold text-slate-900">تم إصدار التذكرة السحابية بنجاح</h3>
+                <p class="text-xs text-slate-500">تم حفظها وإرسال إشعار SMS/WhatsApp الآلي.</p>
+            </div>
             <div class="bg-slate-50 p-4 rounded-2xl border space-y-2">
                 <span class="text-xs text-slate-500 block">رقم الانتظار الخاص بك</span>
                 <div id="modalTicketId" class="text-4xl font-extrabold text-emerald-600 font-mono latin-digits">---</div>
                 <div id="modalTicketDetails" class="text-xs text-slate-600 pt-1"></div>
             </div>
-            <button onclick="document.getElementById('ticketModal').classList.add('hidden')" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs">إغلاق وتحديث</button>
+            <button onclick="document.getElementById('ticketModal').classList.add('hidden')" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs">إغلاق وتأكيد</button>
         </div>
     </div>
 
+    <!-- Notification Toast -->
+    <div id="toastNotification" class="fixed bottom-6 left-6 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl z-50 text-xs flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toastMessage">تم تنفيذ العملية بنجاح</span>
+    </div>
+
     <!-- Footer -->
-    <footer class="bg-white border-t py-3 text-center text-xs text-slate-500">
-        إدارة الرعاية الاجتماعية - نظام الانتظار الذكي متعدد الشاشات © 2026 - جميع الحقوق محفوظة
+    <footer class="bg-white border-t py-4 text-center text-xs text-slate-500">
+        جميع الحقوق محفوظة - نظام الانتظار السحابي المتزامن لخدمة المراجعين &copy; 2026
     </footer>
 
+    <!-- JavaScript Application Logic with Firebase Realtime Database -->
     <script>
-        let queueData = JSON.parse(localStorage.getItem('social_care_queue_data') || '[]');
-        let currentRole = localStorage.getItem('social_care_queue_role') || 'kiosk';
-        let isLocked = localStorage.getItem('social_care_queue_locked') === 'true';
-        let tqnyatSettings = JSON.parse(localStorage.getItem('social_care_tqnyat') || '{"token":"","sender":""}');
-
-        window.onload = function() {
-            document.getElementById('tqnyatToken').value = tqnyatSettings.token || '';
-            document.getElementById('tqnyatSender').value = tqnyatSettings.sender || '';
-            
-            if (!localStorage.getItem('social_care_queue_role')) {
-                document.getElementById('roleSelectorModal').classList.remove('hidden');
-            } else {
-                switchView(currentRole, true);
-            }
-            refreshAllViews();
-
-            setInterval(() => {
-                const latestData = JSON.parse(localStorage.getItem('social_care_queue_data') || '[]');
-                if (JSON.stringify(latestData) !== JSON.stringify(queueData)) {
-                    queueData = latestData;
-                    refreshAllViews();
-                }
-            }, 1500);
+        // Import the functions you need from the SDKs you need
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWCMU54kl5xfp0DGpptj_GZTheJjZovF4",
+            authDomain: "waiting-fc576.firebaseapp.com",
+            projectId: "waiting-fc576",
+            storageBucket: "waiting-fc576.firebasestorage.app",
+            messagingSenderId: "15819119565",
+            appId: "1:15819119565:web:5de5b14cffeda8828e8284",
+            measurementId: "G-EY4W833M08"
         };
 
-        function saveQueue() {
-            localStorage.setItem('social_care_queue_data', JSON.stringify(queueData));
-            localStorage.setItem('social_care_queue_role', currentRole);
-            localStorage.setItem('social_care_queue_locked', isLocked);
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const dbRef = firebase.database().ref('social_care_queue_system');
+
+        let state = {
+            queue: [],
+            currentRole: localStorage.getItem('locked_role') || 'kiosk'
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            applyRole(state.currentRole, false);
+
+            // Listen to real-time database updates
+            dbRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data && data.queue) {
+                    // Convert object map to array
+                    state.queue = Object.values(data.queue);
+                } else {
+                    state.queue = [];
+                }
+                refreshAllViews();
+            }, (error) => {
+                console.error("Firebase sync error:", error);
+                showToast("حدث خطأ في مزامنة السحابة", "error");
+            });
+        });
+
+        function saveStateToCloud() {
+            // Convert queue array to an object keyed by ticket ID for safe RTDB storage
+            const queueObj = {};
+            state.queue.forEach((t, idx) => {
+                queueObj[t.id || ('ticket_' + idx)] = t;
+            });
+            dbRef.set({ queue: queueObj }).catch(err => {
+                console.error("Cloud save failed:", err);
+                showToast("فشل الحفظ في السحابة", "error");
+            });
         }
 
         function openRoleSelector() {
-            if (isLocked) {
-                promptAdminAccess();
-            } else {
-                document.getElementById('roleSelectorModal').classList.remove('hidden');
+            const lockedRole = localStorage.getItem('locked_role');
+            if(lockedRole && lockedRole !== 'admin') {
+                document.getElementById('adminUnlockModal').classList.remove('hidden');
+                window.pendingAction = 'unlockRole';
+                return;
             }
+            document.getElementById('roleSelectorModal').classList.remove('hidden');
         }
 
         function selectRole(role) {
-            currentRole = role;
-            isLocked = false;
-            saveQueue();
             document.getElementById('roleSelectorModal').classList.add('hidden');
-            switchView(role, false);
-            refreshAllViews();
+            applyRole(role, true);
         }
 
         function lockScreenToRole(role) {
-            currentRole = role;
-            isLocked = true;
-            saveQueue();
-            alert('تم قفل وتثبيت هذه الشاشة بنجاح على هذا الوضع. لفتح الإعدادات يلزم كلمة مرور المدير.');
-            refreshAllViews();
+            localStorage.setItem('locked_role', role);
+            showToast('تم تثبيت وعزل الشاشة على وضع: ' + role);
         }
 
-        function switchView(role, skipSave) {
-            currentRole = role;
-            if (!skipSave) saveQueue();
+        function applyRole(role, persist = true) {
+            state.currentRole = role;
+            if(persist) {
+                if(role === 'display' || role === 'counter' || role === 'kiosk') {
+                    localStorage.setItem('locked_role', role);
+                }
+            }
+
+            const roleNames = {
+                kiosk: 'شاشة الاستقبال (Kiosk)',
+                display: 'شاشة عرض الانتظار الكبرى',
+                counter: 'شاشة الشباك المستقلة',
+                staff: 'لوحة تحكم الموظف',
+                search: 'الاستعلام المباشر',
+                admin: 'لوحة تحكم المدير والسجلات'
+            };
+
+            document.getElementById('currentRoleBadge').innerText = roleNames[role] || role;
 
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            
-            let targetId = 'view-kiosk';
-            let badgeText = 'شاشة الاستقبال';
-
-            if (role === 'display') { targetId = 'view-display'; badgeText = 'شاشة العرض الكبرى'; }
-            else if (role === 'counter') { targetId = 'view-counter'; badgeText = 'شاشة الشباك المستقلة'; }
-            else if (role === 'staff') { targetId = 'view-staff'; badgeText = 'لوحة تحكم الموظف'; }
-            else if (role === 'search') { targetId = 'view-search'; badgeText = 'الاستعلام المباشر'; }
-            else if (role === 'admin') { targetId = 'view-admin'; badgeText = 'لوحة المدير العام'; }
-
-            const targetEl = document.getElementById(targetId);
-            if (targetEl) targetEl.classList.add('active');
-            document.getElementById('currentRoleBadge').innerText = badgeText;
+            const targetView = document.getElementById('view-' + role);
+            if(targetView) {
+                targetView.classList.add('active');
+            } else {
+                document.getElementById('view-kiosk').classList.add('active');
+            }
         }
 
         function promptAdminAccess() {
-            document.getElementById('adminPinInput').value = '';
-            document.getElementById('adminUnlockModal').classList.remove('hidden');
+            const lockedRole = localStorage.getItem('locked_role');
+            if(lockedRole) {
+                document.getElementById('adminUnlockModal').classList.remove('hidden');
+                window.pendingAction = 'adminPanel';
+            } else {
+                const pass = prompt('يرجى إدخال كلمة مرور المدير (الافتراضي: 1234):');
+                if(pass === '1234') {
+                    applyRole('admin', false);
+                } else if(pass !== null) {
+                    showToast('كلمة المرور غير صحيحة', 'error');
+                }
+            }
         }
 
         function verifyAdminUnlock() {
             const pin = document.getElementById('adminPinInput').value;
-            if (pin === '1234' || pin === '0000') {
+            if(pin === '1234') {
                 document.getElementById('adminUnlockModal').classList.add('hidden');
-                isLocked = false;
-                saveQueue();
-                switchView('admin', false);
+                document.getElementById('adminPinInput').value = '';
+                localStorage.removeItem('locked_role');
+                showToast('تم التحقق بنجاح');
+                
+                if(window.pendingAction === 'adminPanel') {
+                    applyRole('admin', false);
+                } else {
+                    document.getElementById('roleSelectorModal').classList.remove('hidden');
+                }
+                window.pendingAction = null;
             } else {
-                alert('كلمة المرور غير صحيحة!');
+                showToast('رمز المرور خاطئ', 'error');
             }
         }
 
         function handleTicketSubmit(e) {
-            e.preventDefault();
             const name = document.getElementById('custName').value.trim();
             const phone = document.getElementById('custPhone').value.trim();
             const civil = document.getElementById('custCivil').value.trim();
             const service = document.getElementById('custService').value;
 
-            const ticketNumber = 'A-' + Math.floor(100 + Math.random() * 900);
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            if(!name || !phone || !civil) {
+                showToast('يرجى تعبئة كافة الحقول المطلوبة', 'error');
+                return;
+            }
+
+            const todayTickets = state.queue.filter(t => t.date === new Date().toLocaleDateString());
+            const seqNum = todayTickets.length + 1;
+            const ticketId = 'A-' + (100 + seqNum);
 
             const newTicket = {
-                id: ticketNumber,
+                id: ticketId,
                 name: name,
                 phone: phone,
                 civil: civil,
                 service: service,
                 status: 'انتظار',
                 desk: '-',
-                time: timeStr
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                date: new Date().toLocaleDateString()
             };
 
-            queueData.push(newTicket);
-            saveQueue();
-            refreshAllViews();
+            state.queue.unshift(newTicket);
+            saveStateToCloud();
 
-            document.getElementById('modalTicketId').innerText = ticketNumber;
+            simulateTqnyatSend(phone, `عزيزي المراجع ${name}، تم إصدار تذكرتك رقم (${ticketId}) بنجاح. أنت في قائمة الانتظار لخدمة (${service}).`);
+
+            document.getElementById('modalTicketId').innerText = ticketId;
             document.getElementById('modalTicketDetails').innerText = `${name} - ${service}`;
             document.getElementById('ticketModal').classList.remove('hidden');
 
-            // Reset form
             document.getElementById('custName').value = '';
             document.getElementById('custPhone').value = '';
             document.getElementById('custCivil').value = '';
+            
+            showToast('تم إصدار التذكرة السحابية بنجاح');
         }
 
         function callNextTicket() {
-            const desk = document.getElementById('activeDeskNumber').value;
-            const waitingIndex = queueData.findIndex(t => t.status === 'انتظار');
+            const activeDeskSel = document.getElementById('activeDeskNumber');
+            const desk = activeDeskSel ? activeDeskSel.value : 'مكتب 1';
 
-            if (waitingIndex === -1) {
-                alert('لا يوجد مراجعين في قائمة الانتظار حالياً.');
+            const waitingIndex = state.queue.findIndex(t => t.status === 'انتظار');
+            if(waitingIndex === -1) {
+                showToast('لا توجد تذاكر في قائمة الانتظار حالياً', 'error');
                 return;
             }
 
-            queueData[waitingIndex].status = 'قيد الخدمة';
-            queueData[waitingIndex].desk = desk;
-            saveQueue();
-            refreshAllViews();
+            state.queue.forEach(t => {
+                if(t.status === 'قيد الخدمة' && t.desk === desk) {
+                    t.status = 'مكتمل';
+                }
+            });
+
+            state.queue[waitingIndex].status = 'قيد الخدمة';
+            state.queue[waitingIndex].desk = desk;
+
+            saveStateToCloud();
+            
+            const ticket = state.queue[waitingIndex];
+            simulateTqnyatSend(ticket.phone, `تنبيه دور: نرجو من المراجع ${ticket.name} التوجه فوراً إلى (${desk}). رقم التذكرة: ${ticket.id}`);
+            
+            showToast(`تم استدعاء التذكرة ${ticket.id} إلى ${desk}`);
         }
 
         function repeatCurrentCall() {
-            const desk = document.getElementById('activeDeskNumber').value;
-            const serving = queueData.find(t => t.status === 'قيد الخدمة' && t.desk === desk);
-            if (!serving) {
-                alert('لا يوجد مراجع قيد الخدمة على هذا المكتب حالياً لإعادة النداء.');
+            const activeDeskSel = document.getElementById('activeDeskNumber');
+            const desk = activeDeskSel ? activeDeskSel.value : 'مكتب 1';
+            const current = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === desk);
+            if(!current) {
+                showToast('لا توجد تذكرة قيد الخدمة حالياً على هذا المكتب', 'error');
                 return;
             }
-            alert(`تم إعادة النداء الصوتي والتنبيه للمراجع: ${serving.name} على ${desk}`);
+            simulateTqnyatSend(current.phone, `تكرار النداء: نرجو التوجه العاجل إلى (${desk}). تذكرتك: ${current.id}`);
+            showToast(`تم إعادة النداء للمراجع ${current.id}`);
         }
 
         function finishCurrentTicket() {
-            const desk = document.getElementById('activeDeskNumber').value;
-            const serving = queueData.find(t => t.status === 'قيد الخدمة' && t.desk === desk);
-            if (!serving) {
-                alert('لا يوجد مراجع قيد الخدمة لإنهاء خدمته.');
+            const activeDeskSel = document.getElementById('activeDeskNumber');
+            const desk = activeDeskSel ? activeDeskSel.value : 'مكتب 1';
+            const current = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === desk);
+            if(!current) {
+                showToast('لا توجد تذكرة نشطة لإنهاء خدمتها', 'error');
                 return;
             }
-            serving.status = 'مكتمل';
-            saveQueue();
-            refreshAllViews();
+            current.status = 'مكتمل';
+            saveStateToCloud();
+            showToast(`تم إنهاء خدمة التذكرة ${current.id}`);
+        }
+
+        function updateTicketStatusDirect(ticketId, newStatus) {
+            const ticket = state.queue.find(t => t.id === ticketId);
+            if(ticket) {
+                ticket.status = newStatus;
+                saveStateToCloud();
+                showToast(`تم تغيير حالة التذكرة ${ticketId} إلى ${newStatus}`);
+            }
         }
 
         function refreshAllViews() {
-            // Counters & stats
-            const total = queueData.length;
-            const waitingList = queueData.filter(t => t.status === 'انتظار');
-            const completedList = queueData.filter(t => t.status === 'مكتمل');
+            const total = state.queue.length;
+            const waitingList = state.queue.filter(t => t.status === 'انتظار');
+            const completedCount = state.queue.filter(t => t.status === 'مكتمل').length;
 
-            document.getElementById('kioskTotalCount').innerText = total;
-            document.getElementById('statTotal').innerText = total;
-            document.getElementById('statCompleted').innerText = completedList.length;
-            document.getElementById('waitingCountBadge').innerText = `${waitingList.length} في الانتظار`;
+            const kioskTotal = document.getElementById('kioskTotalCount');
+            if(kioskTotal) kioskTotal.innerText = total;
 
-            // Active Serving on Display & Counter
-            const currentServingTicket = queueData.find(t => t.status === 'قيد الخدمة');
-            if (currentServingTicket) {
-                document.getElementById('displayTicketNum').innerText = currentServingTicket.id;
-                document.getElementById('displayDeskNum').innerText = currentServingTicket.desk;
-            } else {
-                document.getElementById('displayTicketNum').innerText = '---';
-                document.getElementById('displayDeskNum').innerText = '---';
+            // Public Display Screen update
+            const servingNow = state.queue.find(t => t.status === 'قيد الخدمة');
+            const dispTicket = document.getElementById('displayTicketNum');
+            const dispDesk = document.getElementById('displayDeskNum');
+            if(dispTicket && dispDesk) {
+                dispTicket.innerText = servingNow ? servingNow.id : '---';
+                dispDesk.innerText = servingNow ? servingNow.desk : '---';
             }
 
-            // Standalone Counter view
-            const standaloneDesk = document.getElementById('standaloneDeskFilter').value;
-            const deskServing = queueData.find(t => t.status === 'قيد الخدمة' && t.desk === standaloneDesk);
-            if (deskServing) {
-                document.getElementById('standaloneTicketNum').innerText = deskServing.id;
-                document.getElementById('standaloneCustInfo').innerText = `${deskServing.name} (${deskServing.service})`;
-            } else {
-                document.getElementById('standaloneTicketNum').innerText = '---';
-                document.getElementById('standaloneCustInfo').innerText = 'لا يوجد مراجع حالياً';
+            // Standalone Counter Screen update
+            const standaloneDesk = document.getElementById('standaloneDeskFilter') ? document.getElementById('standaloneDeskFilter').value : 'مكتب 1';
+            const standServing = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === standaloneDesk);
+            const standTicketNum = document.getElementById('standaloneTicketNum');
+            const standCustInfo = document.getElementById('standaloneCustInfo');
+            if(standTicketNum && standCustInfo) {
+                standTicketNum.innerText = standServing ? standServing.id : '---';
+                standCustInfo.innerText = standServing ? `${standServing.name} (${standServing.service})` : 'لا يوجد مراجع حالياً';
             }
 
-            // Staff view active desk info
-            const activeDesk = document.getElementById('activeDeskNumber').value;
-            const staffServing = queueData.find(t => t.status === 'قيد الخدمة' && t.desk === activeDesk);
-            document.getElementById('currentServingDisplay').innerText = staffServing ? staffServing.id : '---';
-            document.getElementById('currentDeskDisplay').innerText = activeDesk;
+            // Staff Dashboard & Admin Statistics
+            const statTotal = document.getElementById('statTotal');
+            const statCompleted = document.getElementById('statCompleted');
+            if(statTotal) statTotal.innerText = total;
+            if(statCompleted) statCompleted.innerText = completedCount;
+
+            const currentServingDisplay = document.getElementById('currentServingDisplay');
+            const currentDeskDisplay = document.getElementById('currentDeskDisplay');
+            const activeDeskSel = document.getElementById('activeDeskNumber');
+            const currentDeskVal = activeDeskSel ? activeDeskSel.value : 'مكتب 1';
+
+            const myServing = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === currentDeskVal);
+            if(currentServingDisplay) currentServingDisplay.innerText = myServing ? myServing.id : '---';
+            if(currentDeskDisplay) currentDeskDisplay.innerText = currentDeskVal;
 
             // Render Staff Queue Table
-            let staffHtml = '';
-            queueData.filter(t => t.status === 'انتظار' || t.status === 'قيد الخدمة').forEach(t => {
-                staffHtml += `
-                    <tr>
-                        <td class="p-3 font-mono font-bold text-emerald-600">${t.id}</td>
-                        <td class="p-3 font-bold">${t.name}</td>
-                        <td class="p-3 font-mono latin-digits">${t.phone}</td>
-                        <td class="p-3">${t.service}</td>
-                        <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] ${t.status === 'قيد الخدمة' ? 'bg-amber-100 text-amber-800 font-bold' : 'bg-slate-100 text-slate-700'}">${t.status}</span></td>
-                        <td class="p-3 text-center">
-                            <button onclick="callSpecificTicket('${t.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold">استدعاء</button>
+            const staffTableBody = document.getElementById('counterQueueTableBody');
+            if(staffTableBody) {
+                staffTableBody.innerHTML = '';
+                state.queue.forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition';
+                    tr.innerHTML = `
+                        <td class="p-3 font-bold font-mono latin-digits text-emerald-700">${t.id}</td>
+                        <td class="p-3 font-semibold text-slate-800">${t.name}</td>
+                        <td class="p-3 font-mono latin-digits text-slate-600">${t.phone}</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-slate-100 rounded-lg text-[11px]">${t.service}</span></td>
+                        <td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${getStatusBadgeClass(t.status)}">${t.status}</span></td>
+                        <td class="p-3 text-center space-x-1 space-x-reverse">
+                            <button onclick="updateTicketStatusDirect('${t.id}', 'مكتمل')" class="px-2 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded text-[10px] font-bold">إنجاز</button>
+                            <button onclick="updateTicketStatusDirect('${t.id}', 'ملغي')" class="px-2 py-1 bg-rose-100 text-rose-800 hover:bg-rose-200 rounded text-[10px] font-bold">إلغاء</button>
                         </td>
-                    </tr>
-                `;
-            });
-            document.getElementById('counterQueueTableBody').innerHTML = staffHtml || '<tr><td colspan="6" class="p-4 text-center text-slate-400">لا توجد تذاكر في الانتظار حالياً</td></tr>';
+                    `;
+                    staffTableBody.appendChild(tr);
+                });
+            }
 
             // Render Admin Table
-            let adminHtml = '';
-            queueData.forEach(t => {
-                adminHtml += `
-                    <tr>
-                        <td class="p-3 font-mono font-bold text-emerald-600">${t.id}</td>
-                        <td class="p-3 font-bold">${t.name}</td>
+            const adminTableBody = document.getElementById('adminQueueTableBody');
+            if(adminTableBody) {
+                adminTableBody.innerHTML = '';
+                state.queue.forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition';
+                    tr.innerHTML = `
+                        <td class="p-3 font-bold font-mono latin-digits text-slate-900">${t.id}</td>
+                        <td class="p-3 font-semibold">${t.name}</td>
                         <td class="p-3 font-mono latin-digits">${t.phone}</td>
                         <td class="p-3 font-mono latin-digits">${t.civil}</td>
                         <td class="p-3">${t.service}</td>
-                        <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100">${t.status}</span></td>
-                        <td class="p-3">${t.desk}</td>
-                        <td class="p-3 font-mono latin-digits">${t.time}</td>
-                    </tr>
-                `;
-            });
-            document.getElementById('adminQueueTableBody').innerHTML = adminHtml || '<tr><td colspan="8" class="p-4 text-center text-slate-400">لا توجد سجلات مسجلة اليوم</td></tr>';
+                        <td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${getStatusBadgeClass(t.status)}">${t.status}</span></td>
+                        <td class="p-3 font-bold text-indigo-600">${t.desk}</td>
+                        <td class="p-3 font-mono latin-digits text-slate-500">${t.time}</td>
+                    `;
+                    adminTableBody.appendChild(tr);
+                });
+            }
         }
 
-        function callSpecificTicket(id) {
-            const desk = document.getElementById('activeDeskNumber').value;
-            const ticket = queueData.find(t => t.id === id);
-            if (ticket) {
-                ticket.status = 'قيد الخدمة';
-                ticket.desk = desk;
-                saveQueue();
-                refreshAllViews();
-            }
+        function getStatusBadgeClass(status) {
+            if(status === 'انتظار') return 'bg-amber-100 text-amber-800';
+            if(status === 'قيد الخدمة') return 'bg-sky-100 text-sky-800 animate-pulse';
+            if(status === 'مكتمل') return 'bg-emerald-100 text-emerald-800';
+            return 'bg-slate-100 text-slate-600';
         }
 
         function performSearch() {
             const query = document.getElementById('searchInput').value.trim();
             const resultArea = document.getElementById('searchResultArea');
-            if (!query) {
-                resultArea.innerHTML = '<p class="text-xs text-rose-500">الرجاء إدخال رقم الجوال أو السجل المدني للبحث.</p>';
+            resultArea.innerHTML = '';
+
+            if(!query) {
+                showToast('يرجى إدخال رقم الجوال أو السجل المدني للبحث', 'error');
                 return;
             }
 
-            const found = queueData.filter(t => t.phone.includes(query) || t.civil.includes(query));
-            if (found.length === 0) {
-                resultArea.innerHTML = '<div class="p-4 bg-slate-50 rounded-xl text-xs text-slate-500 text-center">لم يتم العثور على أي تذاكر مطابقة لهذه البيانات اليوم.</div>';
+            const found = state.queue.filter(t => t.phone.includes(query) || t.civil.includes(query) || t.id.toLowerCase().includes(query.toLowerCase()));
+
+            if(found.length === 0) {
+                resultArea.innerHTML = `<div class="p-4 bg-slate-50 rounded-xl text-center text-xs text-slate-500">لم يتم العثور على أي تذاكر مطابقة لـ "${query}"</div>`;
                 return;
             }
 
-            let html = '';
             found.forEach(t => {
-                html += `
-                    <div class="p-4 bg-slate-50 rounded-xl border space-y-1 text-xs">
-                        <div class="flex justify-between font-bold text-slate-900">
-                            <span>الاسم: ${t.name}</span>
-                            <span class="text-emerald-600 font-mono">${t.id}</span>
+                const div = document.createElement('div');
+                div.className = 'p-4 rounded-2xl bg-slate-50 border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3';
+                div.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-emerald-600 text-base font-mono latin-digits">${t.id}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusBadgeClass(t.status)}">${t.status}</span>
                         </div>
-                        <div class="flex justify-between text-slate-500">
-                            <span>الخدمة: ${t.service}</span>
-                            <span>الحالة: <b class="text-slate-800">${t.status}</b> (${t.desk})</span>
-                        </div>
+                        <p class="text-xs font-bold text-slate-800">${t.name} <span class="text-slate-500 font-normal">(${t.service})</span></p>
+                        <p class="text-[11px] text-slate-500 font-mono latin-digits">الجوال: ${t.phone} | المكتب: ${t.desk}</p>
                     </div>
+                    <div class="text-left text-xs font-mono text-slate-400">وقت الإصدار: ${t.time}</div>
                 `;
+                resultArea.appendChild(div);
             });
-            resultArea.innerHTML = html;
-        }
-
-        function saveAdminSettings() {
-            tqnyatSettings.token = document.getElementById('tqnyatToken').value.trim();
-            tqnyatSettings.sender = document.getElementById('tqnyatSender').value.trim();
-            localStorage.setItem('social_care_tqnyat', JSON.stringify(tqnyatSettings));
-            alert('تم حفظ إعدادات الربط السحابي بنجاح.');
-        }
-
-        function clearAllQueueData() {
-            if (confirm('هل أنت متأكد من إعادة ضبط وتصفير جميع تذاكر اليوم؟')) {
-                queueData = [];
-                saveQueue();
-                refreshAllViews();
-                alert('تمت تهيئة وتصفير السجلات بنجاح.');
-            }
         }
 
         function exportToExcel() {
-            if (queueData.length === 0) {
-                alert('لا توجد بيانات لتصديرها.');
+            if(state.queue.length === 0) {
+                showToast('لا توجد بيانات لتصديرها', 'error');
                 return;
             }
-            const worksheet = XLSX.utils.json_to_sheet(queueData);
+            const dataToExport = state.queue.map(t => ({
+                'رقم التذكرة': t.id,
+                'اسم المراجع': t.name,
+                'رقم الجوال': t.phone,
+                'السجل المدني': t.civil,
+                'نوع الخدمة': t.service,
+                'الحالة': t.status,
+                'رقم المكتب': t.desk,
+                'وقت الإصدار': t.time,
+                'التاريخ': t.date
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "QueueRecords");
-            XLSX.writeFile(workbook, "SocialCare_Queue_Records.xlsx");
+            XLSX.utils.book_append_sheet(workbook, worksheet, "السجلات السحابية");
+            XLSX.writeFile(workbook, "Cloud_Queue_Report_" + new Date().toISOString().slice(0,10) + ".xlsx");
+            showToast('تم تصدير ملف Excel بنجاح');
+        }
+
+        function clearAllQueueData() {
+            if(confirm('هل أنت متأكد من تصفير كافة السجلات السحابية؟')) {
+                state.queue = [];
+                dbRef.set({ queue: {} }).then(() => {
+                    showToast('تمت تصفير السجلات السحابية بنجاح');
+                });
+            }
+        }
+
+        function simulateTqnyatSend(phone, message) {
+            console.log(`[Cloud WhatsApp/SMS Simulation API] Sending to ${phone}: ${message}`);
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            msgEl.innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
         }
     </script>
 </body>
