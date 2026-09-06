@@ -8,8 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Tajawal -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;800&family=Almarai:wght@300;400;700;800&family=Cairo:wght@300;400;600;800&family=Changa:wght@400;600;800&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Firebase SDK Compat -->
@@ -21,7 +21,7 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Tajawal', 'sans-serif'] },
+                    fontFamily: { sans: ['var(--app-font, "Tajawal")', 'sans-serif'] },
                     colors: {
                         brand: {
                             50: 'var(--brand-50, #f0f9ff)',
@@ -46,18 +46,28 @@
         }
     </script>
     <style>
-        body { font-family: 'Tajawal', sans-serif; transition: background-color 0.3s, color 0.3s; }
-        .latin-digits, input, select, table, .font-mono { direction: ltr !important; text-align: right; font-family: 'Courier New', Courier, monospace, 'Tajawal', sans-serif; }
-        .tab-content { display: none; }
-        .tab-content.active { display: flex; flex-direction: column; }
-        
-        /* Dynamic Theme Variables */
         :root {
             --brand-500: #0284c7;
             --brand-600: #0369a1;
+            --app-font: 'Tajawal', sans-serif;
         }
+        body { font-family: var(--app-font); transition: background-color 0.3s, color 0.3s; }
+        .latin-digits, input, select, table, .font-mono { direction: ltr !important; text-align: right; font-family: 'Courier New', Courier, monospace, var(--app-font); }
+        .tab-content { display: none; }
+        .tab-content.active { display: flex; flex-direction: column; }
+        
         .ticker-container { overflow: hidden; white-space: nowrap; position: relative; }
         .ticker-text { display: inline-block; padding-right: 100%; }
+
+        /* Custom Display Screen Themes */
+        .display-theme-dark {
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            color: #f8fafc;
+        }
+        .display-theme-light {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            color: #0f172a;
+        }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between">
@@ -204,9 +214,9 @@
 
         <!-- 2. Public Display Screen View -->
         <section id="view-display" class="tab-content">
-            <div class="max-w-6xl mx-auto w-full bg-slate-900 text-white rounded-3xl shadow-2xl border-4 border-brand-500 p-6 sm:p-10 space-y-6 my-auto">
+            <div id="displayMainContainer" class="max-w-6xl mx-auto w-full display-theme-dark rounded-3xl shadow-2xl border-4 border-brand-500 p-6 sm:p-10 space-y-6 my-auto transition-all duration-300 bg-cover bg-center">
                 <!-- Header -->
-                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div class="flex items-center justify-between border-b border-slate-700/50 pb-4">
                     <div class="flex items-center gap-3 text-brand-500">
                         <i class="fa-solid fa-tv text-3xl"></i>
                         <h2 class="text-2xl font-extrabold">شاشة عرض الانتظار العامة</h2>
@@ -223,7 +233,7 @@
                 </div>
 
                 <!-- Footer News Ticker Bar -->
-                <div id="tickerBarContainer" class="rounded-2xl p-3 border border-slate-800 bg-slate-950 flex items-center gap-3 overflow-hidden">
+                <div id="tickerBarContainer" class="rounded-2xl p-3 border border-slate-700/50 bg-slate-950/80 backdrop-blur flex items-center gap-3 overflow-hidden">
                     <div id="tickerBadge" class="px-3 py-1 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shrink-0 z-10 shadow">
                         <i class="fa-solid fa-bullhorn"></i> <span id="tickerTitle">إعلان هام</span>
                     </div>
@@ -234,9 +244,9 @@
                     </div>
                 </div>
 
-                <div class="pt-2 flex justify-between items-center px-2 text-xs text-slate-400">
+                <div class="pt-2 flex justify-between items-center px-2 text-xs opacity-80">
                     <span>نرجو التوجه فوراً للمكتب المحدد عند ظهور رقمك على الشاشة.</span>
-                    <button onclick="lockScreenToRole('display')" class="text-slate-500 hover:text-slate-300 transition flex items-center gap-1.5">
+                    <button onclick="lockScreenToRole('display')" class="hover:underline transition flex items-center gap-1.5">
                         <i class="fa-solid fa-lock"></i> تثبيت الشاشة
                     </button>
                 </div>
@@ -323,25 +333,28 @@
                 
                 <!-- Admin Navigation Tabs -->
                 <div class="flex gap-2 border-b dark:border-slate-800 pb-3 overflow-x-auto">
-                    <button onclick="switchAdminTab('stats')" id="tabBtn-stats" class="admin-tab-btn px-4 py-2 bg-brand-500 text-white font-bold rounded-xl text-xs">
+                    <button onclick="switchAdminTab('stats')" id="tabBtn-stats" class="admin-tab-btn px-4 py-2 bg-brand-500 text-white font-bold rounded-xl text-xs whitespace-nowrap">
                         <i class="fa-solid fa-chart-pie ml-1"></i> الإحصائيات والسجلات
                     </button>
-                    <button onclick="switchAdminTab('branding')" id="tabBtn-branding" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
-                        <i class="fa-solid fa-palette ml-1"></i> الهوية والألوان
+                    <button onclick="switchAdminTab('branding')" id="tabBtn-branding" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs whitespace-nowrap">
+                        <i class="fa-solid fa-palette ml-1"></i> الهوية والتصميم
                     </button>
-                    <button onclick="switchAdminTab('desks')" id="tabBtn-desks" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
+                    <button onclick="switchAdminTab('displayCustom')" id="tabBtn-displayCustom" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs whitespace-nowrap">
+                        <i class="fa-solid fa-tv ml-1"></i> تخصيص شاشة العرض
+                    </button>
+                    <button onclick="switchAdminTab('desks')" id="tabBtn-desks" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs whitespace-nowrap">
                         <i class="fa-solid fa-desktop ml-1"></i> إدارة المكاتب
                     </button>
-                    <button onclick="switchAdminTab('services')" id="tabBtn-services" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
+                    <button onclick="switchAdminTab('services')" id="tabBtn-services" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs whitespace-nowrap">
                         <i class="fa-solid fa-list-check ml-1"></i> إدارة الخدمات
                     </button>
-                    <button onclick="switchAdminTab('ticker')" id="tabBtn-ticker" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
+                    <button onclick="switchAdminTab('ticker')" id="tabBtn-ticker" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs whitespace-nowrap">
                         <i class="fa-solid fa-bullhorn ml-1"></i> شريط الأخبار
                     </button>
-                    <button onclick="switchAdminTab('audio')" id="tabBtn-audio" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
-                        <i class="fa-solid fa-volume-high ml-1"></i> إعدادات النداء الصوتي
+                    <button onclick="switchAdminTab('audio')" id="tabBtn-audio" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs whitespace-nowrap">
+                        <i class="fa-solid fa-volume-high ml-1"></i> النداء الصوتي
                     </button>
-                    <button onclick="switchAdminTab('security')" id="tabBtn-security" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
+                    <button onclick="switchAdminTab('security')" id="tabBtn-security" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs whitespace-nowrap">
                         <i class="fa-solid fa-shield-halved ml-1"></i> الأمان والرمز
                     </button>
                 </div>
@@ -406,7 +419,7 @@
                 <!-- Admin Tab 2: Branding & Themes -->
                 <div id="adminTab-branding" class="admin-sub-tab space-y-6 hidden">
                     <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
-                        <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">إعدادات الهوية والألوان والمسميات</h3>
+                        <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">إعدادات الهوية والألوان العامة والخطوط</h3>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
@@ -419,15 +432,19 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-xs font-bold mb-1">اللون الرئيسي للنظام (Primary Color)</label>
-                                <select id="cfgPrimaryColor" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
-                                    <option value="#0284c7">أزرق سمائي (Default Sky)</option>
-                                    <option value="#059669">أخضر زمردي (Emerald Green)</option>
-                                    <option value="#7c3aed">بنفسجي ملكي (Royal Purple)</option>
-                                    <option value="#e11d48">عنابي / أحمر (Ruby Red)</option>
-                                    <option value="#d97706">برتقالي / ذهبي (Amber Gold)</option>
+                                <input type="color" id="cfgPrimaryColorPicker" class="w-full h-11 p-1 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1">خط النظام والشاشات (Font Family)</label>
+                                <select id="cfgFontFamily" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                                    <option value="'Tajawal', sans-serif">Tajawal (تجوال - الافتراضي)</option>
+                                    <option value="'Cairo', sans-serif">Cairo (القاهرة)</option>
+                                    <option value="'Almarai', sans-serif">Almarai (المرعي)</option>
+                                    <option value="'Changa', sans-serif">Changa (تشانغا)</option>
+                                    <option value="'Alexandria', sans-serif">Alexandria (الإسكندرية)</option>
                                 </select>
                             </div>
                             <div>
@@ -436,11 +453,51 @@
                             </div>
                         </div>
 
-                        <button onclick="saveBrandingSettings()" class="px-6 py-3 bg-brand-500 text-white font-bold rounded-xl text-xs shadow">حفظ إعدادات الهوية</button>
+                        <button onclick="saveBrandingSettings()" class="px-6 py-3 bg-brand-500 text-white font-bold rounded-xl text-xs shadow">حفظ إعدادات الهوية والتصميم</button>
                     </div>
                 </div>
 
-                <!-- Admin Tab 3: Desks Manager -->
+                <!-- Admin Tab 3: Display Screen Customization -->
+                <div id="adminTab-displayCustom" class="admin-sub-tab space-y-6 hidden">
+                    <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
+                        <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">تخصيص خلفية وألوان شاشة عرض الانتظار العامة</h3>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold mb-1">نمط خلفية الشاشة</label>
+                                <select id="cfgDisplayBgType" onchange="toggleBgTypeOptions()" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                                    <option value="dark">تدرج داكن (Dark Mode)</option>
+                                    <option value="light">تدرج فاتح (Light Mode)</option>
+                                    <option value="customColor">لون مخصص ثابت</option>
+                                    <option value="imageUrl">صورة خلفية مخصصة (URL)</option>
+                                </select>
+                            </div>
+                            <div id="bgOptionColor" class="hidden">
+                                <label class="block text-xs font-bold mb-1">اختر لون خلفية الشاشة المخصص</label>
+                                <input type="color" id="cfgDisplayBgColor" value="#0f172a" class="w-full h-11 p-1 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer">
+                            </div>
+                            <div id="bgOptionImage" class="hidden">
+                                <label class="block text-xs font-bold mb-1">رابط صورة الخلفية (Image URL)</label>
+                                <input type="text" id="cfgDisplayBgImageUrl" placeholder="https://example.com/bg.jpg" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold mb-1">لون خلفية كروت المكاتب (Desks Card BG)</label>
+                                <input type="color" id="cfgDisplayCardBg" value="#1e293b" class="w-full h-11 p-1 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1">لون نص أرقام الانتظار المصدرة</label>
+                                <input type="color" id="cfgDisplayNumberColor" value="#34d399" class="w-full h-11 p-1 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer">
+                            </div>
+                        </div>
+
+                        <button onclick="saveDisplayCustomSettings()" class="px-6 py-3 bg-brand-500 text-white font-bold rounded-xl text-xs shadow">حفظ وتحديث شاشة العرض</button>
+                    </div>
+                </div>
+
+                <!-- Admin Tab 4: Desks Manager -->
                 <div id="adminTab-desks" class="admin-sub-tab space-y-6 hidden">
                     <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
                         <div class="flex justify-between items-center border-b dark:border-slate-800 pb-3">
@@ -454,7 +511,7 @@
                     </div>
                 </div>
 
-                <!-- Admin Tab 4: Services Manager -->
+                <!-- Admin Tab 5: Services Manager -->
                 <div id="adminTab-services" class="admin-sub-tab space-y-6 hidden">
                     <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
                         <div class="flex justify-between items-center border-b dark:border-slate-800 pb-3">
@@ -468,7 +525,7 @@
                     </div>
                 </div>
 
-                <!-- Admin Tab 5: News Ticker -->
+                <!-- Admin Tab 6: News Ticker -->
                 <div id="adminTab-ticker" class="admin-sub-tab space-y-6 hidden">
                     <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
                         <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">إعدادات شريط الأخبار والإعلانات المتحرك</h3>
@@ -509,10 +566,10 @@
                     </div>
                 </div>
 
-                <!-- Admin Tab 6: Audio Settings -->
+                <!-- Admin Tab 7: Audio Settings -->
                 <div id="adminTab-audio" class="admin-sub-tab space-y-6 hidden">
                     <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
-                        <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">إعدادات محرك النداء الصوتي (المرحلة الأولى)</h3>
+                        <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">إعدادات محرك النداء الصوتي</h3>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
@@ -552,7 +609,7 @@
                     </div>
                 </div>
 
-                <!-- Admin Tab 7: Security -->
+                <!-- Admin Tab 8: Security -->
                 <div id="adminTab-security" class="admin-sub-tab space-y-6 hidden">
                     <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6 max-w-xl">
                         <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">تغيير رمز لوحة المدير (Admin PIN)</h3>
@@ -625,8 +682,16 @@
                 agencyName: "إدارة الرعاية الاجتماعية",
                 branchName: "فرع حفر الباطن - نظام الانتظار السحابي",
                 primaryColor: "#0284c7",
+                fontFamily: "'Tajawal', sans-serif",
                 logoUrl: "",
                 adminPin: "66434984",
+                display: {
+                    bgType: "dark", // dark, light, customColor, imageUrl
+                    bgColor: "#0f172a",
+                    bgImageUrl: "",
+                    cardBg: "#1e293b",
+                    numberColor: "#34d399"
+                },
                 ticker: {
                     text: "مرحباً بكم في إدارة الرعاية الاجتماعية - نرجو تجهيز الهوية الوطنية قبل الدخول للمكتب.",
                     enabled: true,
@@ -678,7 +743,6 @@
             });
         });
 
-        // Initialize Web Speech API Engine
         function initVoiceEngine() {
             if ('speechSynthesis' in window) {
                 const loadVoices = () => {
@@ -711,7 +775,6 @@
             }
         }
 
-        // دالة تحويل الحروف والأرقام إلى كلمات عربية مشكولة لنطق إنساني واصل
         function convertTicketToArabicWords(ticketId) {
             const letterMap = {
                 'A': 'أَلِف', 'B': 'بَاء', 'C': 'جِيم', 'D': 'دَال', 'E': 'هَاء',
@@ -764,30 +827,23 @@
             return ticketId;
         }
 
-        // دالة النداء الصوتي المعدلة بنطق طبيعي ومشَكَّل
         function speakCall(ticketId, deskName) {
             if (!state.config.audio || !state.config.audio.enabled) return;
             if (!('speechSynthesis' in window)) return;
 
-            window.speechSynthesis.cancel(); // إيقاف أي نداء سابق
+            window.speechSynthesis.cancel();
 
-            // تحويل رقم التذكرة ونوع المكتب إلى كلمات عربية مشكولة
             const spokenTicket = convertTicketToArabicWords(ticketId);
-            
-            // معالجة اسم المكتب لنطقه بلغة عربية سليمة ومشكولة
             let spokenDesk = deskName
                 .replace(/مكتب\s*(\d+)/g, (match, p1) => `مَكْتَبِ ${convertTicketToArabicWords('X-' + p1).replace('حَرْفُ X ، رَقْمُ ', '')}`)
                 .replace(/-/g, '؛ ');
 
-            // صياغة النص الكامل بالتشكيل اللغوي
             const speechText = `صَاحِبُ التَّذْكَرَة : ${spokenTicket} ، يَرْجَى التَّوَجُّهُ إِلَى ${spokenDesk}`;
 
             const utterance = new SpeechSynthesisUtterance(speechText);
             utterance.lang = 'ar-SA';
-            
-            // ضبط الخصائص لنبرة أكثر طبيعية وإنتاجية
-            utterance.rate = state.config.audio.rate || 0.85; // إبطاء خفيف لزيادة وضوح مخارج الحروف
-            utterance.pitch = state.config.audio.pitch || 1.05; // رفع طفيف للنبرة للابتعاد عن الصوت الروبوتي الخفيض
+            utterance.rate = state.config.audio.rate || 0.85;
+            utterance.pitch = state.config.audio.pitch || 1.05;
 
             if (state.config.audio.voiceURI) {
                 const selectedVoice = availableVoices.find(v => v.voiceURI === state.config.audio.voiceURI);
@@ -814,10 +870,14 @@
         }
 
         function applyConfigToUI() {
-            // Apply Branding
+            // Apply Branding & Fonts
             document.getElementById('displayAgencyName').innerText = state.config.agencyName;
             document.getElementById('displayBranchName').innerText = state.config.branchName;
             document.documentElement.style.setProperty('--brand-500', state.config.primaryColor);
+            
+            if(state.config.fontFamily) {
+                document.documentElement.style.setProperty('--app-font', state.config.fontFamily);
+            }
 
             if(state.config.logoUrl) {
                 document.getElementById('headerLogoImg').src = state.config.logoUrl;
@@ -826,6 +886,27 @@
             } else {
                 document.getElementById('headerLogoImg').classList.add('hidden');
                 document.getElementById('headerLogoIcon').classList.remove('hidden');
+            }
+
+            // Apply Display Customization
+            const displayContainer = document.getElementById('displayMainContainer');
+            if(displayContainer && state.config.display) {
+                const d = state.config.display;
+                displayContainer.classList.remove('display-theme-dark', 'display-theme-light');
+                displayContainer.style.backgroundColor = '';
+                displayContainer.style.backgroundImage = '';
+
+                if(d.bgType === 'dark') {
+                    displayContainer.classList.add('display-theme-dark');
+                } else if(d.bgType === 'light') {
+                    displayContainer.classList.add('display-theme-light');
+                } else if(d.bgType === 'customColor') {
+                    displayContainer.style.backgroundColor = d.bgColor || '#0f172a';
+                    displayContainer.style.color = '#ffffff';
+                } else if(d.bgType === 'imageUrl' && d.bgImageUrl) {
+                    displayContainer.style.backgroundImage = `url('${d.bgImageUrl}')`;
+                    displayContainer.style.color = '#ffffff';
+                }
             }
 
             // Apply Services to Kiosk
@@ -868,8 +949,20 @@
             // Populate Admin Inputs
             document.getElementById('cfgAgencyName').value = state.config.agencyName;
             document.getElementById('cfgBranchName').value = state.config.branchName;
-            document.getElementById('cfgPrimaryColor').value = state.config.primaryColor;
+            document.getElementById('cfgPrimaryColorPicker').value = state.config.primaryColor || '#0284c7';
+            if(state.config.fontFamily) document.getElementById('cfgFontFamily').value = state.config.fontFamily;
             document.getElementById('cfgLogoUrl').value = state.config.logoUrl || '';
+            
+            // Populate Display Config
+            if(state.config.display) {
+                document.getElementById('cfgDisplayBgType').value = state.config.display.bgType || 'dark';
+                document.getElementById('cfgDisplayBgColor').value = state.config.display.bgColor || '#0f172a';
+                document.getElementById('cfgDisplayBgImageUrl').value = state.config.display.bgImageUrl || '';
+                document.getElementById('cfgDisplayCardBg').value = state.config.display.cardBg || '#1e293b';
+                document.getElementById('cfgDisplayNumberColor').value = state.config.display.numberColor || '#34d399';
+                toggleBgTypeOptions();
+            }
+
             document.getElementById('cfgTickerText').value = state.config.ticker.text;
             document.getElementById('cfgTickerEnabled').value = state.config.ticker.enabled ? 'true' : 'false';
             document.getElementById('cfgTickerSpeed').value = state.config.ticker.speed;
@@ -886,6 +979,18 @@
 
             renderAdminDesksList();
             renderAdminServicesList();
+        }
+
+        function toggleBgTypeOptions() {
+            const type = document.getElementById('cfgDisplayBgType').value;
+            const colorDiv = document.getElementById('bgOptionColor');
+            const imgDiv = document.getElementById('bgOptionImage');
+
+            colorDiv.classList.add('hidden');
+            imgDiv.classList.add('hidden');
+
+            if(type === 'customColor') colorDiv.classList.remove('hidden');
+            if(type === 'imageUrl') imgDiv.classList.remove('hidden');
         }
 
         function toggleDarkMode() {
@@ -972,8 +1077,19 @@
         function saveBrandingSettings() {
             state.config.agencyName = document.getElementById('cfgAgencyName').value;
             state.config.branchName = document.getElementById('cfgBranchName').value;
-            state.config.primaryColor = document.getElementById('cfgPrimaryColor').value;
+            state.config.primaryColor = document.getElementById('cfgPrimaryColorPicker').value;
+            state.config.fontFamily = document.getElementById('cfgFontFamily').value;
             state.config.logoUrl = document.getElementById('cfgLogoUrl').value;
+            saveConfigToCloud();
+        }
+
+        function saveDisplayCustomSettings() {
+            if(!state.config.display) state.config.display = {};
+            state.config.display.bgType = document.getElementById('cfgDisplayBgType').value;
+            state.config.display.bgColor = document.getElementById('cfgDisplayBgColor').value;
+            state.config.display.bgImageUrl = document.getElementById('cfgDisplayBgImageUrl').value;
+            state.config.display.cardBg = document.getElementById('cfgDisplayCardBg').value;
+            state.config.display.numberColor = document.getElementById('cfgDisplayNumberColor').value;
             saveConfigToCloud();
         }
 
@@ -1133,10 +1249,14 @@
             if(displayDesksGrid) {
                 displayDesksGrid.innerHTML = '';
                 const activeDesks = state.config.desks.filter(d => d.active);
+                const cardBg = state.config.display?.cardBg || '#1e293b';
+                const numberColor = state.config.display?.numberColor || '#34d399';
+
                 activeDesks.forEach((desk) => {
                     const serving = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === desk.name);
                     const div = document.createElement('div');
-                    div.className = 'bg-slate-800/90 rounded-2xl p-6 border border-slate-700 shadow-inner text-center flex flex-col justify-between space-y-4 hover:border-brand-500 transition duration-300';
+                    div.style.backgroundColor = cardBg;
+                    div.className = 'rounded-2xl p-6 border border-slate-700/60 shadow-inner text-center flex flex-col justify-between space-y-4 hover:border-brand-500 transition duration-300 backdrop-blur';
                     div.innerHTML = `
                         <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
                             <span class="text-xs font-extrabold text-brand-500">${desk.name}</span>
@@ -1145,10 +1265,10 @@
                             </div>
                         </div>
                         <div>
-                            <span class="text-[11px] text-slate-400 block mb-1">الرقم الحالي</span>
-                            <div class="text-5xl font-black text-emerald-400 font-mono latin-digits py-2 tracking-wider">${serving ? serving.id : '---'}</div>
+                            <span class="text-[11px] opacity-80 block mb-1">الرقم الحالي</span>
+                            <div class="text-5xl font-black font-mono latin-digits py-2 tracking-wider" style="color: ${numberColor}">${serving ? serving.id : '---'}</div>
                         </div>
-                        <div class="text-[11px] text-slate-400 bg-slate-900/50 py-1.5 rounded-lg border border-slate-800 truncate">${serving ? serving.service : 'متاح للخدمة'}</div>
+                        <div class="text-[11px] opacity-80 bg-slate-900/40 py-1.5 rounded-lg border border-slate-800/40 truncate">${serving ? serving.service : 'متاح للخدمة'}</div>
                     `;
                     displayDesksGrid.appendChild(div);
                 });
