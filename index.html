@@ -1,334 +1,1362 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" class="h-full">
+<html lang="ar" dir="rtl" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الطوابير الذكي الاحترافي – Enterprise QMS</title>
-    <!-- Tailwind CSS CDN -->
+    <title id="appTitle">إدارة الرعاية الاجتماعية - نظام الانتظار السحابي الشامل</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Tajawal -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { cairo: ['Cairo', 'sans-serif'] },
+                    fontFamily: { sans: ['Tajawal', 'sans-serif'] },
                     colors: {
-                        deptReception: '#2563eb', // أزرق رسمي
-                        deptSocial: '#059669',    // أخضر مؤسسي
-                        deptServices: '#d97706'   // برتقالي دافئ
+                        brand: {
+                            50: 'var(--brand-50, #f0f9ff)',
+                            500: 'var(--brand-500, #0284c7)',
+                            600: 'var(--brand-600, #0369a1)',
+                            700: 'var(--brand-700, #075985)',
+                        }
+                    },
+                    animation: {
+                        'marquee-slow': 'marquee 25s linear infinite',
+                        'marquee-medium': 'marquee 15s linear infinite',
+                        'marquee-fast': 'marquee 8s linear infinite',
+                    },
+                    keyframes: {
+                        marquee: {
+                            '0%': { transform: 'translateX(-100%)' },
+                            '100%': { transform: 'translateX(100%)' }
+                        }
                     }
                 }
             }
         }
     </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Cairo -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Cairo', sans-serif; }
-        @keyframes numberPulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.06); background-color: rgba(37, 99, 235, 0.1); }
-            100% { transform: scale(1); opacity: 1; }
+        body { font-family: 'Tajawal', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        .latin-digits, input, select, table, .font-mono { direction: ltr !important; text-align: right; font-family: 'Courier New', Courier, monospace, 'Tajawal', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: flex; flex-direction: column; }
+        
+        /* Dynamic Theme Variables */
+        :root {
+            --brand-500: #0284c7;
+            --brand-600: #0369a1;
         }
-        .pulse-anim { animation: numberPulse 0.8s ease-in-out; }
+        .ticker-container { overflow: hidden; white-space: nowrap; position: relative; }
+        .ticker-text { display: inline-block; padding-right: 100%; }
     </style>
 </head>
-<body class="h-full bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-300 flex flex-col justify-between">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between">
 
-    <!-- شريط التنقل العلوي للتحكم بالواجهات -->
-    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex flex-wrap justify-between items-center shadow-sm print:hidden">
-        <div class="flex items-center space-x-3 space-x-reverse">
-            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-md">ن</div>
+    <!-- Role Selector Modal -->
+    <div id="roleSelectorModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-4xl w-full p-8 border border-slate-200 dark:border-slate-800 space-y-6 text-center">
+            <div class="w-16 h-16 bg-brand-500 rounded-2xl mx-auto flex items-center justify-center text-white text-2xl shadow-lg">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
             <div>
-                <h1 class="font-black text-base tracking-wide">النظام الذكي للطوابير</h1>
-                <p class="text-xs text-slate-500 dark:text-slate-400">الإصدار المؤسسي الاحترافي</p>
+                <h2 class="text-2xl font-extrabold mb-2">اختر طريقة تشغيل هذه الشاشة</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">حدد دور هذا الجهاز (استقبال، شاشة عرض، لوحة موظف، أو إعدادات).</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-right">
+                <button onclick="selectRole('kiosk')" class="p-5 rounded-2xl border-2 border-sky-100 dark:border-slate-800 bg-sky-50/50 dark:bg-slate-800/50 hover:border-brand-500 transition space-y-2">
+                    <div class="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-ticket"></i></div>
+                    <h3 class="font-bold text-sm">شاشة المراجع (Kiosk)</h3>
+                    <p class="text-[11px] text-slate-500">لإصدار التذاكر الذاتية.</p>
+                </button>
+                <button onclick="selectRole('display')" class="p-5 rounded-2xl border-2 border-teal-100 dark:border-slate-800 bg-teal-50/50 dark:bg-slate-800/50 hover:border-teal-500 transition space-y-2">
+                    <div class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-tv"></i></div>
+                    <h3 class="font-bold text-sm">شاشة عرض الانتظار</h3>
+                    <p class="text-[11px] text-slate-500">عرض أرقام المكاتب والشريط.</p>
+                </button>
+                <button onclick="selectRole('staff')" class="p-5 rounded-2xl border-2 border-emerald-100 dark:border-slate-800 bg-emerald-50/50 dark:bg-slate-800/50 hover:border-emerald-500 transition space-y-2">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-sliders"></i></div>
+                    <h3 class="font-bold text-sm">لوحة تحكم الموظف</h3>
+                    <p class="text-[11px] text-slate-500">استدعاء وإدارة الطابور.</p>
+                </button>
+                <button onclick="selectRole('search')" class="p-5 rounded-2xl border-2 border-amber-100 dark:border-slate-800 bg-amber-50/50 dark:bg-slate-800/50 hover:border-amber-500 transition space-y-2">
+                    <div class="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-magnifying-glass"></i></div>
+                    <h3 class="font-bold text-sm">الاستعلام المباشر</h3>
+                    <p class="text-[11px] text-slate-500">لالبحث عن دور المراجع.</p>
+                </button>
+            </div>
+            <div class="pt-2 border-t dark:border-slate-800 flex justify-between items-center">
+                <span class="text-xs text-slate-400">للوصول للإعدادات الشاملة، استخدم زر لوحة المدير.</span>
+                <button onclick="document.getElementById('roleSelectorModal').classList.add('hidden')" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
             </div>
         </div>
-        <nav class="flex flex-wrap items-center gap-2 mt-2 md:mt-0">
-            <button onclick="switchScreen('client')" class="nav-btn px-4 py-2 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition shadow-sm"><i class="fa-solid fa-user-plus ml-1"></i> المراجع</button>
-            <button onclick="switchScreen('display')" class="nav-btn px-4 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 rounded-xl text-xs font-bold hover:bg-emerald-600 hover:text-white transition shadow-sm"><i class="fa-solid fa-tv ml-1"></i> شاشة العرض</button>
-            <button onclick="switchScreen('employee')" class="nav-btn px-4 py-2 bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-900 rounded-xl text-xs font-bold hover:bg-purple-600 hover:text-white transition shadow-sm"><i class="fa-solid fa-headset ml-1"></i> لوحة الموظف</button>
-            <button onclick="switchScreen('admin')" class="nav-btn px-4 py-2 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900 rounded-xl text-xs font-bold hover:bg-amber-600 hover:text-white transition shadow-sm"><i class="fa-solid fa-chart-line ml-1"></i> لوحة المدير</button>
-            <button onclick="toggleDarkMode()" class="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="تبديل الوضع الليلي"><i class="fa-solid fa-moon"></i></button>
-        </nav>
+    </div>
+
+    <!-- Admin Unlock PIN Modal -->
+    <div id="adminUnlockModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-6 border dark:border-slate-800 space-y-4 text-center">
+            <div class="w-14 h-14 bg-amber-500 text-white rounded-2xl mx-auto flex items-center justify-center text-xl">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold">أدخل رمز المدير (Admin PIN)</h3>
+                <p class="text-xs text-slate-400 mt-1">ادخل الرمز </p>
+            </div>
+            <input type="password" id="adminPinInput" placeholder="أدخل الرمز هنا" class="w-full px-4 py-3 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl text-center text-lg latin-digits outline-none focus:ring-2 focus:ring-amber-500">
+            <div class="flex gap-2">
+                <button onclick="verifyAdminUnlock()" class="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs">تحقق وفك القفل</button>
+                <button onclick="document.getElementById('adminUnlockModal').classList.add('hidden')" class="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Header Bar -->
+    <header class="bg-slate-900 text-white shadow-md border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div id="headerLogoContainer" class="w-10 h-10 rounded-2xl bg-brand-500 flex items-center justify-center shadow-lg overflow-hidden">
+                    <i id="headerLogoIcon" class="fa-solid fa-hands-holding-child text-white text-lg"></i>
+                    <img id="headerLogoImg" class="w-full h-full object-cover hidden" src="" alt="Logo">
+                </div>
+                <div>
+                    <h1 id="displayAgencyName" class="text-base font-extrabold tracking-wide">إدارة الرعاية الاجتماعية - نظام الانتظار السحابي</h1>
+                    <p id="displayBranchName" class="text-[11px] text-slate-400">فرع حفر الباطن | مزامنة مباشرة</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="toggleDarkMode()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 text-amber-400 transition" title="تبديل الوضع">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <span id="currentRoleBadge" class="px-3 py-1 bg-slate-800 text-emerald-400 text-xs font-bold rounded-xl border border-slate-700">شاشة الاستقبال</span>
+                <button onclick="openRoleSelector()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 text-sky-400 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrows-split-up-and-left"></i> الوضع
+                </button>
+                <button onclick="promptAdminAccess()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-xs font-bold rounded-xl text-white transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-gear"></i> لوحة المدير والإعدادات
+                </button>
+            </div>
+        </div>
     </header>
 
-    <!-- الحاويات الرئيسية للواجهات -->
-    <main class="flex-grow p-4 md:p-8 overflow-y-auto">
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
 
-        <!-- ⭐ 1) واجهة المراجع (Client Registration) -->
-        <section id="screen-client" class="screen-view max-w-xl mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800 p-8">
-            <div class="text-center mb-8">
-                <div class="inline-flex p-3 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-2xl text-2xl mb-3"><i class="fa-solid fa-ticket"></i></div>
-                <h2 class="text-2xl font-black">إصدار تذكرة انتظار جديدة</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">الرجاء إدخال بياناتك بدقة لتوجيهك للقسم المختص</p>
+        <!-- 1. Kiosk View -->
+        <section id="view-kiosk" class="tab-content active">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-5xl mx-auto w-full">
+                <div class="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border dark:border-slate-800 p-6 sm:p-8">
+                    <h2 class="text-2xl font-bold mb-2">أهلاً بك، أدخل بياناتك للحصول على رقم الانتظار</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">سيتم حفظ طلبك فوراً في قاعدة البيانات السحابية لكي يظهر لدى جميع الشاشات.</p>
+                    
+                    <form onsubmit="handleTicketSubmit(event); return false;" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold mb-1">الاسم الكامل *</label>
+                            <input type="text" id="custName" required placeholder="مثال: خالد سعد العمري" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold mb-1">رقم الجوال *</label>
+                                <input type="tel" id="custPhone" required placeholder="05XXXXXXXX" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm latin-digits focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1">السجل المدني / الإقامة *</label>
+                                <input type="text" id="custCivil" required placeholder="10xxxxxxxx" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm latin-digits focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1">اختر نوع الخدمة المطلوبة *</label>
+                            <select id="custService" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                <!-- Dynamic Options -->
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full py-4 bg-brand-500 hover:bg-brand-600 text-white font-extrabold rounded-2xl shadow-lg transition flex items-center justify-center gap-2 text-base">
+                            <i class="fa-solid fa-ticket"></i> تأكيد وإصدار رقم الانتظار السحابي
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-5 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-xl">
+                    <div class="space-y-4">
+                        <div class="w-12 h-12 rounded-2xl bg-brand-500/20 text-brand-500 flex items-center justify-center">
+                            <i class="fa-solid fa-cloud text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">اتصال سحابي مباشر متزامن</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            جميع التذاكر والنداءات متزامنة بالكامل لحظياً عبر سحابية فايربيز لتعمل بسلاسة بين مختلف الأجهزة في المبنى أو عن بُعد.
+                        </p>
+                    </div>
+                    <div class="pt-6 border-t border-slate-700 flex justify-between items-center text-xs text-slate-400">
+                        <span>إجمالي التذاكر المصدرة اليوم</span>
+                        <span id="kioskTotalCount" class="font-mono latin-digits text-brand-500 font-bold text-sm">0</span>
+                    </div>
+                </div>
             </div>
-            
-            <form id="clientForm" onsubmit="handleClientSubmission(event)" class="space-y-5">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider">الاسم الكامل</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" id="cName" required placeholder="مثال: يوسف الذعار" class="w-full pr-11 pl-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
+        </section>
+
+        <!-- 2. Public Display Screen View -->
+        <section id="view-display" class="tab-content">
+            <div class="max-w-6xl mx-auto w-full bg-slate-900 text-white rounded-3xl shadow-2xl border-4 border-brand-500 p-6 sm:p-10 space-y-6 my-auto">
+                <!-- Header -->
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div class="flex items-center gap-3 text-brand-500">
+                        <i class="fa-solid fa-tv text-3xl"></i>
+                        <h2 class="text-2xl font-extrabold">شاشة عرض الانتظار العامة</h2>
+                    </div>
+                    <span class="px-3 py-1 bg-brand-500/20 text-brand-500 text-xs font-bold rounded-xl border border-brand-500/30 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-brand-500 animate-ping"></span>
+                        مزامنة مباشرة
+                    </span>
+                </div>
+
+                <!-- Dynamic Grid for Desks -->
+                <div id="displayDesksGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                    <!-- Dynamic Desks Inserted Here -->
+                </div>
+
+                <!-- Footer News Ticker Bar -->
+                <div id="tickerBarContainer" class="rounded-2xl p-3 border border-slate-800 bg-slate-950 flex items-center gap-3 overflow-hidden">
+                    <div id="tickerBadge" class="px-3 py-1 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shrink-0 z-10 shadow">
+                        <i class="fa-solid fa-bullhorn"></i> <span id="tickerTitle">إعلان هام</span>
+                    </div>
+                    <div class="ticker-container flex-1 text-sm font-semibold text-amber-300">
+                        <div id="tickerAnimatedText" class="ticker-text animate-marquee-medium">
+                            مرحباً بكم في إدارة الرعاية الاجتماعية - نرجو تجهيز الهوية الوطنية قبل الدخول للمكتب.
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider">رقم الجوال</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400"><i class="fa-solid fa-phone"></i></span>
-                        <input type="tel" id="cPhone" required placeholder="05xxxxxxxx" class="w-full pr-11 pl-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
-                    </div>
+
+                <div class="pt-2 flex justify-between items-center px-2 text-xs text-slate-400">
+                    <span>نرجو التوجه فوراً للمكتب المحدد عند ظهور رقمك على الشاشة.</span>
+                    <button onclick="lockScreenToRole('display')" class="text-slate-500 hover:text-slate-300 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-lock"></i> تثبيت الشاشة
+                    </button>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider">السجل المدني / الإقامة</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400"><i class="fa-solid fa-id-card"></i></span>
-                        <input type="text" id="cId" required placeholder="10xxxxxxxx" class="w-full pr-11 pl-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider">القسم المطلوب</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400"><i class="fa-solid fa-building-user"></i></span>
-                        <select id="cDept" class="w-full pr-11 pl-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition text-sm appearance-none cursor-pointer">
-                            <option value="استقبال">مكتب الاستقبال والتوجيه</option>
-                            <option value="بحث اجتماعي">قسم البحث الاجتماعي</option>
-                            <option value="خدمات مستفيدين">قسم خدمات المستفيدين</option>
+            </div>
+        </section>
+
+        <!-- 4. Staff Control Panel View -->
+        <section id="view-staff" class="tab-content">
+            <div class="max-w-6xl mx-auto w-full space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm space-y-3">
+                        <label class="block text-xs font-bold">حدد رقم مكتبك الحالي:</label>
+                        <select id="activeDeskNumber" onchange="refreshAllViews()" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold outline-none">
+                            <!-- Dynamic Desks -->
                         </select>
                     </div>
-                </div>
-                <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/25 transition duration-200 text-sm tracking-wide">إصدار التذكرة الآن</button>
-            </form>
 
-            <!-- نافذة نجاح الإصدار -->
-            <div id="ticketSuccessCard" class="hidden mt-6 p-6 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-2xl text-center">
-                <span class="inline-block p-2 bg-emerald-500 text-white rounded-full text-lg mb-2"><i class="fa-solid fa-check"></i></span>
-                <h3 class="font-bold text-emerald-800 dark:text-emerald-300 text-base">تم إصدار التذكرة بنجاح</h3>
-                <div id="generatedTicketNum" class="text-6xl font-black my-3 text-emerald-600 tracking-wider">A-101</div>
-                <p id="generatedDeptName" class="text-xs font-semibold text-slate-600 dark:text-slate-400">استقبال</p>
-                <div class="flex justify-center gap-3 mt-5">
-                    <button onclick="triggerIntegration('WhatsApp')" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow transition"><i class="fa-brands fa-whatsapp ml-1"></i> إرسال واتساب</button>
-                    <button onclick="triggerIntegration('SMS')" class="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow transition"><i class="fa-solid fa-sms ml-1"></i> رسالة SMS</button>
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                        <span class="text-xs text-slate-500">التذكرة النشطة حالياً على مكتبك</span>
+                        <div class="flex items-center justify-between">
+                            <span id="currentServingDisplay" class="text-3xl font-extrabold text-brand-500 font-mono latin-digits">---</span>
+                            <span id="currentDeskDisplay" class="px-3 py-1 bg-brand-50 text-brand-600 dark:bg-slate-800 rounded-xl text-xs font-bold">مكتب 1</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm flex items-center gap-3">
+                        <button onclick="callNextTicket()" class="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs shadow transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bullhorn"></i> استدعاء التالي
+                        </button>
+                        <button onclick="repeatCurrentCall()" class="px-4 py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold rounded-2xl text-xs transition" title="إعادة نداء">
+                            <i class="fa-solid fa-rotate-right text-base"></i>
+                        </button>
+                        <button onclick="finishCurrentTicket()" class="px-4 py-4 bg-rose-50 dark:bg-rose-950/40 text-rose-600 font-bold rounded-2xl text-xs transition" title="إنهاء الخدمة">
+                            <i class="fa-solid fa-check text-base"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Queue Management Table -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl border dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b dark:border-slate-800 flex justify-between items-center">
+                        <h3 class="text-base font-bold">طابور الانتظار السحابي</h3>
+                        <span class="text-xs text-slate-500">مزامنة حية</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs">
+                            <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-b dark:border-slate-800">
+                                <tr>
+                                    <th class="p-3">رقم التذكرة</th>
+                                    <th class="p-3">اسم المراجع</th>
+                                    <th class="p-3">رقم الجوال</th>
+                                    <th class="p-3">الخدمة</th>
+                                    <th class="p-3">الحالة</th>
+                                    <th class="p-3 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="counterQueueTableBody" class="divide-y dark:divide-slate-800">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- ⭐ 2) واجهة عرض الأرقام (Queue Display Screen) -->
-        <section id="screen-display" class="screen-view hidden max-w-7xl mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800 p-8 min-h-[75vh] flex flex-col justify-between">
-            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-5">
-                <div class="flex items-center space-x-4 space-x-reverse">
-                    <div class="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center font-black text-blue-600 text-lg border border-slate-200 dark:border-slate-700">شعار</div>
-                    <div>
-                        <h2 class="font-black text-xl">وكالة الوزارة لشؤون المستفيدين</h2>
-                        <p class="text-xs text-slate-500">نظام إدارة الطوابير والنداء الآلي</p>
-                    </div>
+        <!-- 5. Search View -->
+        <section id="view-search" class="tab-content">
+            <div class="max-w-3xl mx-auto w-full bg-white dark:bg-slate-900 rounded-3xl shadow-sm border dark:border-slate-800 p-8 space-y-6">
+                <div class="text-center space-y-2">
+                    <h2 class="text-2xl font-extrabold">الاستعلام المباشر عن الدور</h2>
+                    <p class="text-xs text-slate-500">أدخل رقم الجوال أو السجل المدني للبحث الفوري.</p>
                 </div>
-                <div class="px-4 py-2 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400 rounded-2xl text-xs font-bold">شاشة العرض المركزية</div>
-            </div>
-
-            <div id="displayAnimationBox" class="text-center py-16 transition-all duration-300">
-                <span class="text-xs font-extrabold tracking-widest text-slate-400 uppercase">الرقم الحالي قيد الخدمة</span>
-                <div id="dispCurrentNum" class="text-[130px] md:text-[180px] font-black tracking-wider text-blue-600 my-2 leading-none">---</div>
-                <div id="dispDeptName" class="text-3xl md:text-4xl font-bold text-slate-700 dark:text-slate-300">في انتظار النداء...</div>
-            </div>
-
-            <div class="flex flex-wrap justify-between items-center border-t border-slate-100 dark:border-slate-800 pt-5 text-sm">
-                <div id="displayDateTime" class="font-bold text-slate-500 text-sm">2026/09/03 – 03:02 PM</div>
-                <div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                    <div class="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center text-xs font-bold shadow-sm">QR</div>
-                    <div class="text-right">
-                        <p class="text-xs font-bold">مسح لتقييم الخدمة</p>
-                        <p class="text-[10px] text-slate-400">رأيك يساهم في تحسين جودة الأداء</p>
-                    </div>
+                <div class="flex gap-2">
+                    <input type="text" id="searchInput" placeholder="أدخل رقم الجوال أو السجل المدني..." class="flex-1 px-4 py-3 border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-2xl text-sm latin-digits outline-none focus:ring-2 focus:ring-amber-500">
+                    <button onclick="performSearch()" class="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-2xl text-xs transition">بحث</button>
                 </div>
+                <div id="searchResultArea" class="space-y-3 pt-2"></div>
             </div>
         </section>
 
-        <!-- ⭐ 3) واجهة الموظف (Employee Control Panel) -->
-        <section id="screen-employee" class="screen-view hidden max-w-6xl mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800 p-8">
-            <div class="flex justify-between items-center mb-8 border-b border-slate-100 dark:border-slate-800 pb-5">
-                <div>
-                    <h2 class="text-2xl font-black text-purple-600 dark:text-purple-400">لوحة تحكم الموظف</h2>
-                    <p class="text-xs text-slate-500 mt-1">الموظف المسؤول: <span class="font-bold text-slate-700 dark:text-slate-300">أحمد (مكتب الاستقبال)</span></p>
+        <!-- 6. Comprehensive Admin & Config Panel View -->
+        <section id="view-admin" class="tab-content">
+            <div class="max-w-6xl mx-auto w-full space-y-6">
+                
+                <!-- Admin Navigation Tabs -->
+                <div class="flex gap-2 border-b dark:border-slate-800 pb-3 overflow-x-auto">
+                    <button onclick="switchAdminTab('stats')" id="tabBtn-stats" class="admin-tab-btn px-4 py-2 bg-brand-500 text-white font-bold rounded-xl text-xs">
+                        <i class="fa-solid fa-chart-pie ml-1"></i> الإحصائيات والسجلات
+                    </button>
+                    <button onclick="switchAdminTab('branding')" id="tabBtn-branding" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
+                        <i class="fa-solid fa-palette ml-1"></i> الهوية والألوان
+                    </button>
+                    <button onclick="switchAdminTab('desks')" id="tabBtn-desks" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
+                        <i class="fa-solid fa-desktop ml-1"></i> إدارة المكاتب
+                    </button>
+                    <button onclick="switchAdminTab('services')" id="tabBtn-services" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
+                        <i class="fa-solid fa-list-check ml-1"></i> إدارة الخدمات
+                    </button>
+                    <button onclick="switchAdminTab('ticker')" id="tabBtn-ticker" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
+                        <i class="fa-solid fa-bullhorn ml-1"></i> شريط الأخبار
+                    </button>
+                    <button onclick="switchAdminTab('audio')" id="tabBtn-audio" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
+                        <i class="fa-solid fa-volume-high ml-1"></i> إعدادات النداء الصوتي
+                    </button>
+                    <button onclick="switchAdminTab('security')" id="tabBtn-security" class="admin-tab-btn px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs">
+                        <i class="fa-solid fa-shield-halved ml-1"></i> الأمان والرمز
+                    </button>
                 </div>
-                <div class="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-600 rounded-full text-xs font-bold">
-                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span> متصل بالنظام الحي
-                </div>
-            </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col h-[450px]">
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">قائمة المنتظرين</span>
-                        <span id="empQueueCount" class="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold">3</span>
-                    </div>
-                    <div id="empWaitingList" class="space-y-2.5 overflow-y-auto flex-grow pr-1">
-                        <div class="p-3.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <!-- Admin Tab 1: Stats & Records -->
+                <div id="adminTab-stats" class="admin-sub-tab space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm space-y-2">
+                            <span class="text-xs text-slate-500">إجمالي الحجوزات</span>
+                            <div id="statTotal" class="text-3xl font-black font-mono latin-digits">0</div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm space-y-2">
+                            <span class="text-xs text-slate-500">الخدمات المنجزة</span>
+                            <div id="statCompleted" class="text-3xl font-black text-emerald-600 font-mono latin-digits">0</div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm flex items-center justify-between">
                             <div>
-                                <span class="font-black text-base">A-102</span>
-                                <p class="text-xs text-slate-500">محمد علي</p>
+                                <span class="text-xs text-slate-500 block mb-1">تصدير التقارير</span>
+                                <span class="text-xs font-bold">ملف Excel</span>
                             </div>
-                            <span class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg font-bold">في الانتظار</span>
+                            <button onclick="exportToExcel()" class="px-4 py-3 bg-emerald-600 text-white font-bold rounded-2xl text-xs flex items-center gap-1.5 shadow">
+                                <i class="fa-solid fa-file-excel"></i> تصدير
+                            </button>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border dark:border-slate-800 shadow-sm flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-slate-500 block mb-1">إدارة السجلات</span>
+                                <span class="text-xs font-bold text-rose-600">تصفير السحابية</span>
+                            </div>
+                            <button onclick="clearAllQueueData()" class="px-4 py-3 bg-rose-600 text-white font-bold rounded-2xl text-xs shadow">تصفير</button>
+                        </div>
+                    </div>
+
+                    <!-- Records Table -->
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl border dark:border-slate-800 shadow-sm overflow-hidden">
+                        <div class="p-6 border-b dark:border-slate-800 flex justify-between items-center">
+                            <h3 class="text-base font-bold">سجل التذاكر السحابية</h3>
+                            <span class="text-xs text-slate-500 font-mono">Archive</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-right text-xs">
+                                <thead class="bg-slate-50 dark:bg-slate-800/50 border-b dark:border-slate-800">
+                                    <tr>
+                                        <th class="p-3">التذكرة</th>
+                                        <th class="p-3">الاسم</th>
+                                        <th class="p-3">الجوال</th>
+                                        <th class="p-3">السجل</th>
+                                        <th class="p-3">الخدمة</th>
+                                        <th class="p-3">الحالة</th>
+                                        <th class="p-3">المكتب</th>
+                                        <th class="p-3">الوقت</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminQueueTableBody" class="divide-y dark:divide-slate-800">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
-                <div class="lg:col-span-2 bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-slate-800/50 dark:to-purple-950/20 p-8 rounded-3xl border border-purple-100 dark:border-slate-700 flex flex-col justify-between">
-                    <div>
-                        <div class="flex justify-between items-start">
-                            <span class="text-xs font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest">التذكرة النشطة حالياً</span>
-                            <span class="text-xs text-slate-500">وقت الانتظار: 4.5 دقيقة</span>
+                <!-- Admin Tab 2: Branding & Themes -->
+                <div id="adminTab-branding" class="admin-sub-tab space-y-6 hidden">
+                    <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
+                        <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">إعدادات الهوية والألوان والمسميات</h3>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold mb-1">اسم الجهة / الهيئة *</label>
+                                <input type="text" id="cfgAgencyName" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1">اسم الفرع / القسم *</label>
+                                <input type="text" id="cfgBranchName" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                            </div>
                         </div>
-                        <div id="empActiveNum" class="text-7xl md:text-8xl font-black my-6 text-slate-800 dark:text-white tracking-wider">A-101</div>
-                        <div class="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-purple-100 dark:border-slate-700 space-y-1">
-                            <p class="text-sm font-bold text-slate-700 dark:text-slate-300">اسم المراجع: خالد عبدالله العتيبي</p>
-                            <p class="text-xs text-slate-500">السجل المدني: 109283xxxx | الجوال: 055123xxxx</p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold mb-1">اللون الرئيسي للنظام (Primary Color)</label>
+                                <select id="cfgPrimaryColor" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                                    <option value="#0284c7">أزرق سمائي (Default Sky)</option>
+                                    <option value="#059669">أخضر زمردي (Emerald Green)</option>
+                                    <option value="#7c3aed">بنفسجي ملكي (Royal Purple)</option>
+                                    <option value="#e11d48">عنابي / أحمر (Ruby Red)</option>
+                                    <option value="#d97706">برتقالي / ذهبي (Amber Gold)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1">رابط صورة الشعار (Logo URL)</label>
+                                <input type="text" id="cfgLogoUrl" placeholder="https://example.com/logo.png" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
-                        <button onclick="empAction('call')" class="py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 text-xs transition"><i class="fa-solid fa-bullhorn ml-1"></i> نداء صوتي</button>
-                        <button onclick="empAction('recall')" class="py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow-lg shadow-amber-500/20 text-xs transition"><i class="fa-solid fa-rotate-right ml-1"></i> إعادة نداء</button>
-                        <button onclick="empAction('skip')" class="py-3.5 bg-slate-500 hover:bg-slate-600 text-white font-bold rounded-2xl shadow-lg text-xs transition"><i class="fa-solid fa-forward ml-1"></i> تخطي</button>
-                        <button onclick="empAction('finish')" class="py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 text-xs transition"><i class="fa-solid fa-check ml-1"></i> إنهاء المعاملة</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ⭐ 4) واجهة المدير (Admin Dashboard) -->
-        <section id="screen-admin" class="screen-view hidden max-w-7xl mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800 p-8">
-            <div class="flex justify-between items-center mb-8 border-b border-slate-100 dark:border-slate-800 pb-5">
-                <div>
-                    <h2 class="text-2xl font-black text-amber-600 dark:text-amber-400">لوحة تحكم المدير الاحترافية</h2>
-                    <p class="text-xs text-slate-500 mt-1">مؤشرات الأداء وتحليل حركة المراجعين اليومية</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="p-5 bg-blue-50/60 dark:bg-slate-800/60 border border-blue-100 dark:border-slate-700 rounded-2xl">
-                    <span class="text-xs font-bold text-blue-600 dark:text-blue-400">إجمالي مراجعو اليوم</span>
-                    <h3 class="text-4xl font-black mt-2 text-slate-800 dark:text-white">142</h3>
-                </div>
-                <div class="p-5 bg-emerald-50/60 dark:bg-slate-800/60 border border-emerald-100 dark:border-slate-700 rounded-2xl">
-                    <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">المعاملات المنجزة</span>
-                    <h3 class="text-4xl font-black mt-2 text-slate-800 dark:text-white">128</h3>
-                </div>
-                <div class="p-5 bg-amber-50/60 dark:bg-slate-800/60 border border-amber-100 dark:border-slate-700 rounded-2xl">
-                    <span class="text-xs font-bold text-amber-600 dark:text-amber-400">متوسط وقت الانتظار</span>
-                    <h3 class="text-4xl font-black mt-2 text-slate-800 dark:text-white">4.2 د</h3>
-                </div>
-                <div class="p-5 bg-purple-50/60 dark:bg-slate-800/60 border border-purple-100 dark:border-slate-700 rounded-2xl">
-                    <span class="text-xs font-bold text-purple-600 dark:text-purple-400">رضا المستفيدين العام</span>
-                    <h3 class="text-4xl font-black mt-2 text-slate-800 dark:text-white">4.8 <span class="text-lg font-normal text-slate-400">/5</span></h3>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="p-6 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700">
-                    <h3 class="font-bold text-sm mb-4 text-slate-700 dark:text-slate-300"><i class="fa-solid fa-building-user text-blue-500 ml-2"></i> إدارة المكاتب والأقسام</h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
-                            <span>مكتب الاستقبال</span>
-                            <span class="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-1 rounded-lg">نشط</span>
-                        </div>
-                        <div class="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
-                            <span>بحث اجتماعي</span>
-                            <span class="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-1 rounded-lg">نشط</span>
-                        </div>
+                        <button onclick="saveBrandingSettings()" class="px-6 py-3 bg-brand-500 text-white font-bold rounded-xl text-xs shadow">حفظ إعدادات الهوية</button>
                     </div>
                 </div>
 
-                <div class="p-6 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700">
-                    <h3 class="font-bold text-sm mb-4 text-slate-700 dark:text-slate-300"><i class="fa-solid fa-network-wired text-purple-500 ml-2"></i> ربط الخدمات الخارجية (APIs)</h3>
-                    <div class="space-y-2.5 text-xs">
-                        <div class="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center font-bold">
-                            <span>واتساب Business API</span>
-                            <span class="text-emerald-500"><i class="fa-solid fa-circle-check"></i> متصل</span>
+                <!-- Admin Tab 3: Desks Manager -->
+                <div id="adminTab-desks" class="admin-sub-tab space-y-6 hidden">
+                    <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
+                        <div class="flex justify-between items-center border-b dark:border-slate-800 pb-3">
+                            <h3 class="text-base font-bold">إدارة المكاتب الشباك</h3>
+                            <button onclick="addNewDeskConfig()" class="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold">+ إضافة مكتب جديد</button>
                         </div>
-                        <div class="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center font-bold">
-                            <span>Firebase Firestore</span>
-                            <span class="text-emerald-500"><i class="fa-solid fa-bolt"></i> مباشر</span>
+                        <div id="desksListContainer" class="space-y-3">
+                            <!-- Dynamic Desk Items -->
+                        </div>
+                        <button onclick="saveDesksSettings()" class="px-6 py-3 bg-brand-500 text-white font-bold rounded-xl text-xs shadow">حفظ تعديلات المكاتب</button>
+                    </div>
+                </div>
+
+                <!-- Admin Tab 4: Services Manager -->
+                <div id="adminTab-services" class="admin-sub-tab space-y-6 hidden">
+                    <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
+                        <div class="flex justify-between items-center border-b dark:border-slate-800 pb-3">
+                            <h3 class="text-base font-bold">إدارة الخدمات والرموز</h3>
+                            <button onclick="addNewServiceConfig()" class="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold">+ إضافة خدمة جديدة</button>
+                        </div>
+                        <div id="servicesListContainer" class="space-y-3">
+                            <!-- Dynamic Services -->
+                        </div>
+                        <button onclick="saveServicesSettings()" class="px-6 py-3 bg-brand-500 text-white font-bold rounded-xl text-xs shadow">حفظ تعديلات الخدمات</button>
+                    </div>
+                </div>
+
+                <!-- Admin Tab 5: News Ticker -->
+                <div id="adminTab-ticker" class="admin-sub-tab space-y-6 hidden">
+                    <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
+                        <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">إعدادات شريط الأخبار والإعلانات المتحرك</h3>
+                        
+                        <div>
+                            <label class="block text-xs font-bold mb-1">نص الشريط الإخباري *</label>
+                            <textarea id="cfgTickerText" rows="3" class="w-full p-4 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold mb-1">حالة الشريط</label>
+                                <select id="cfgTickerEnabled" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                                    <option value="true">مفعل ويظهر بشاشة العرض</option>
+                                    <option value="false">معطل ومخفي</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1">سرعة الحركة</label>
+                                <select id="cfgTickerSpeed" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                                    <option value="marquee-slow">بطيء (25 ثانية)</option>
+                                    <option value="marquee-medium">متوسط (15 ثانية)</option>
+                                    <option value="marquee-fast">سريع (8 ثواني)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1">نمط ولون الشريط</label>
+                                <select id="cfgTickerStyle" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                                    <option value="amber">تنبيه أصفر / داكن</option>
+                                    <option value="emerald">نجاح أخضر</option>
+                                    <option value="rose">عاجل أحمر</option>
+                                    <option value="sky">أزرق معلوماتي</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button onclick="saveTickerSettings()" class="px-6 py-3 bg-brand-500 text-white font-bold rounded-xl text-xs shadow">تحديث شريط الأخبار سحابياً</button>
+                    </div>
+                </div>
+
+                <!-- Admin Tab 6: Audio Settings -->
+                <div id="adminTab-audio" class="admin-sub-tab space-y-6 hidden">
+                    <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6">
+                        <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">إعدادات محرك النداء الصوتي (المرحلة الأولى)</h3>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold mb-1">حالة النداء الصوتي</label>
+                                <select id="cfgAudioEnabled" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                                    <option value="true">مفعل تلقائياً عند الاستدعاء</option>
+                                    <option value="false">معطل (صامت)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1">الصوت العربي المتاح بالنظام</label>
+                                <select id="cfgAudioVoice" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                                    <option value="">جاري البحث عن الأصوات...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold mb-1">معدل السرعة (Speed Rate)</label>
+                                <input type="range" id="cfgAudioRate" min="0.5" max="1.5" step="0.05" value="0.85" class="w-full accent-brand-500" oninput="document.getElementById('rateValue').innerText = this.value">
+                                <span class="text-xs text-slate-400">القيمة: <span id="rateValue">0.85</span></span>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1">درجة الصوت (Pitch)</label>
+                                <input type="range" id="cfgAudioPitch" min="0.5" max="1.5" step="0.05" value="1.05" class="w-full accent-brand-500" oninput="document.getElementById('pitchValue').innerText = this.value">
+                                <span class="text-xs text-slate-400">القيمة: <span id="pitchValue">1.05</span></span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 pt-2">
+                            <button onclick="saveAudioSettings()" class="px-6 py-3 bg-brand-500 text-white font-bold rounded-xl text-xs shadow">حفظ إعدادات الصوت</button>
+                            <button onclick="testAudioSpeech()" class="px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl text-xs shadow flex items-center gap-2">
+                                <i class="fa-solid fa-volume-high"></i> تجربة الصوت الان
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="p-6 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700">
-                    <h3 class="font-bold text-sm mb-4 text-slate-700 dark:text-slate-300"><i class="fa-solid fa-shield-halved text-amber-500 ml-2"></i> الصلاحيات وسجلات النظام</h3>
-                    <div class="space-y-2.5 text-xs">
-                        <button class="w-full text-right p-3 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200 dark:border-slate-700 font-bold transition">إدارة حسابات الموظفين</button>
-                        <button class="w-full text-right p-3 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200 dark:border-slate-700 font-bold transition">عرض سجل التدقيق (Audit Log)</button>
+                <!-- Admin Tab 7: Security -->
+                <div id="adminTab-security" class="admin-sub-tab space-y-6 hidden">
+                    <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border dark:border-slate-800 space-y-6 max-w-xl">
+                        <h3 class="text-base font-bold border-b dark:border-slate-800 pb-3">تغيير رمز لوحة المدير (Admin PIN)</h3>
+                        
+                        <div>
+                            <label class="block text-xs font-bold mb-1">رمز المرور الجديد (أرقام فقط) *</label>
+                            <input type="password" id="cfgAdminPin" class="w-full px-4 py-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm latin-digits">
+                        </div>
+
+                        <button onclick="saveSecuritySettings()" class="px-6 py-3 bg-amber-600 text-white font-bold rounded-xl text-xs shadow">تحديث رمز الدخول</button>
                     </div>
                 </div>
+
             </div>
         </section>
 
     </main>
 
-    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 px-6 text-center text-xs text-slate-500">
-        جميع الحقوق محفوظة © 2026 – نظام إدارة الطوابير والنداء الذكي (Enterprise QMS)
+    <!-- Success Ticket Modal -->
+    <div id="ticketModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-sm w-full p-8 border dark:border-slate-800 text-center space-y-6">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-2xl font-bold">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-xl font-extrabold">تم إصدار التذكرة بنجاح</h3>
+                <p class="text-xs text-slate-500">تم حفظها وتحديث الشاشات سحابياً.</p>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border dark:border-slate-700 space-y-2">
+                <span class="text-xs text-slate-500 block">رقم الانتظار الخاص بك</span>
+                <div id="modalTicketId" class="text-4xl font-extrabold text-brand-500 font-mono latin-digits">---</div>
+                <div id="modalTicketDetails" class="text-xs text-slate-400 pt-1"></div>
+            </div>
+            <button onclick="document.getElementById('ticketModal').classList.add('hidden')" class="w-full py-3 bg-slate-900 text-white font-bold rounded-xl text-xs">إغلاق وتأكيد</button>
+        </div>
+    </div>
+
+    <div id="toastNotification" class="fixed bottom-6 left-6 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl z-50 text-xs flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toastMessage">تم تنفيذ العملية بنجاح</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-slate-900 border-t dark:border-slate-800 py-4 text-center text-xs text-slate-500">
+        جميع الحقوق محفوظة - نظام الانتظار السحابي الديناميكي الشامل &copy; 2026
     </footer>
 
     <script>
-        function switchScreen(id) {
-            document.querySelectorAll('.screen-view').forEach(el => el.classList.add('hidden'));
-            document.getElementById('screen-' + id).classList.remove('hidden');
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWCMU54kl5xfp0DGpptj_GZTheJjZovF4",
+            authDomain: "waiting-fc576.firebaseapp.com",
+            databaseURL: "https://waiting-fc576-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "waiting-fc576",
+            storageBucket: "waiting-fc576.firebasestorage.app",
+            messagingSenderId: "15819119565",
+            appId: "1:15819119565:web:5de5b14cffeda8828e8284",
+            measurementId: "G-EY4W833M08"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const dbRef = firebase.database().ref('social_care_queue_system');
+
+        // Initial Dynamic App State
+        let state = {
+            queue: [],
+            config: {
+                agencyName: "إدارة الرعاية الاجتماعية",
+                branchName: "فرع حفر الباطن - نظام الانتظار السحابي",
+                primaryColor: "#0284c7",
+                logoUrl: "",
+                adminPin: "66434984",
+                ticker: {
+                    text: "مرحباً بكم في إدارة الرعاية الاجتماعية - نرجو تجهيز الهوية الوطنية قبل الدخول للمكتب.",
+                    enabled: true,
+                    speed: "marquee-medium",
+                    style: "amber"
+                },
+                audio: {
+                    enabled: true,
+                    voiceURI: "",
+                    rate: 0.85,
+                    pitch: 1.05
+                },
+                desks: [
+                    { id: "desk1", name: "مكتب 1 - الاستقبال", icon: "fa-user-tie", active: true },
+                    { id: "desk2", name: "مكتب 2 - البحث الاجتماعي", icon: "fa-clipboard-user", active: true },
+                    { id: "desk3", name: "مكتب 3 - المساعدات المالية", icon: "fa-hand-holding-dollar", active: true },
+                    { id: "desk4", name: "مكتب 4 - شؤون المستفيدين", icon: "fa-id-card", active: true }
+                ],
+                services: [
+                    { id: "s1", name: "استقبال", prefix: "A" },
+                    { id: "s2", name: "بحث اجتماعي", prefix: "B" },
+                    { id: "s3", name: "المساعدات المالية", prefix: "C" },
+                    { id: "s4", name: "شؤون المستفيدين", prefix: "D" },
+                    { id: "s5", name: "الخدمات الإلكترونية", prefix: "E" }
+                ]
+            },
+            currentRole: localStorage.getItem('locked_role') || 'kiosk'
+        };
+
+        let availableVoices = [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            applyRole(state.currentRole, false);
+            initVoiceEngine();
+
+            dbRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data) {
+                    if(data.queue) state.queue = Object.values(data.queue);
+                    else state.queue = [];
+                    
+                    if(data.config) state.config = { ...state.config, ...data.config };
+                }
+                applyConfigToUI();
+                refreshAllViews();
+            }, (error) => {
+                console.error("Firebase sync error:", error);
+                showToast("حدث خطأ في مزامنة السحابة", "error");
+            });
+        });
+
+        // Initialize Web Speech API Engine
+        function initVoiceEngine() {
+            if ('speechSynthesis' in window) {
+                const loadVoices = () => {
+                    availableVoices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('ar'));
+                    const voiceSelect = document.getElementById('cfgAudioVoice');
+                    if (voiceSelect) {
+                        voiceSelect.innerHTML = '';
+                        if (availableVoices.length === 0) {
+                            const opt = document.createElement('option');
+                            opt.value = '';
+                            opt.innerText = 'الصوت العربي الافتراضي للنظام';
+                            voiceSelect.appendChild(opt);
+                        } else {
+                            availableVoices.forEach((v, i) => {
+                                const opt = document.createElement('option');
+                                opt.value = v.voiceURI;
+                                opt.innerText = `${v.name} (${v.lang})`;
+                                voiceSelect.appendChild(opt);
+                            });
+                        }
+                        if (state.config.audio && state.config.audio.voiceURI) {
+                            voiceSelect.value = state.config.audio.voiceURI;
+                        }
+                    }
+                };
+                loadVoices();
+                if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                    window.speechSynthesis.onvoiceschanged = loadVoices;
+                }
+            }
+        }
+
+        // دالة تحويل الحروف والأرقام إلى كلمات عربية مشكولة لنطق إنساني واصل
+        function convertTicketToArabicWords(ticketId) {
+            const letterMap = {
+                'A': 'أَلِف', 'B': 'بَاء', 'C': 'جِيم', 'D': 'دَال', 'E': 'هَاء',
+                'F': 'وَاو', 'G': 'زَاي', 'H': 'حَاء', 'I': 'طَاء', 'J': 'يَاء'
+            };
+
+            function numberToArabicWords(num) {
+                const n = parseInt(num, 10);
+                if (isNaN(n)) return num;
+                
+                const ones = ["", "وَاحِد", "اثْنَان", "ثَلاَثَة", "أَرْبَعَة", "خَمْسَة", "سِتَّة", "سَبْعَة", "ثَمَانِيَة", "تِسْعَة"];
+                const tens = ["", "عَشَرَة", "عِشْرُون", "ثَلاَثُون", "أَرْبَعُون", "خَمْسُون", "سِتُّون", "سَبْعُون", "ثَمَانُون", "تِسْعُون"];
+                const teens = ["عَشَرَة", "أَحَدَ عَشَر", "اثْنَا عَشَر", "ثَلاَثَةَ عَشَر", "أَرْبَعَةَ عَشَر", "خَمْسَةَ عَشَر", "سِتَّةَ عَشَر", "سَبْعَةَ عَشَر", "ثَمَانِيَةَ عَشَر", "تِسْعَةَ عَشَر"];
+                const hundreds = ["", "مِائَة", "مِائَتَان", "ثَلاَثُ مِائَة", "أَرْبَعُ مِائَة", "خَمْسُ مِائَة", "سِتُّ مِائَة", "سَبْعُ مِائَة", "ثَمَانِ مِائَة", "تِسْعُ مِائَة"];
+
+                if (n === 0) return "صِفْر";
+                
+                let parts = [];
+                let h = Math.floor(n / 100);
+                let rem = n % 100;
+                
+                if (h > 0) parts.push(hundreds[h]);
+                
+                if (rem > 0) {
+                    if (rem < 10) {
+                        parts.push(ones[rem]);
+                    } else if (rem >= 10 && rem < 20) {
+                        parts.push(teens[rem - 10]);
+                    } else {
+                        let t = Math.floor(rem / 10);
+                        let o = rem % 10;
+                        if (o > 0) {
+                            parts.push(ones[o] + " وَ" + tens[t]);
+                        } else {
+                            parts.push(tens[t]);
+                        }
+                    }
+                }
+                return parts.join(" وَ");
+            }
+
+            const parts = ticketId.split('-');
+            if (parts.length === 2) {
+                const letter = parts[0].toUpperCase();
+                const numPart = parts[1];
+                const arabicLetter = letterMap[letter] || letter;
+                const arabicNumber = numberToArabicWords(numPart);
+                return `حَرْفُ ${arabicLetter} ، رَقْمُ ${arabicNumber}`;
+            }
+            return ticketId;
+        }
+
+        // دالة النداء الصوتي المعدلة بنطق طبيعي ومشَكَّل
+        function speakCall(ticketId, deskName) {
+            if (!state.config.audio || !state.config.audio.enabled) return;
+            if (!('speechSynthesis' in window)) return;
+
+            window.speechSynthesis.cancel(); // إيقاف أي نداء سابق
+
+            // تحويل رقم التذكرة ونوع المكتب إلى كلمات عربية مشكولة
+            const spokenTicket = convertTicketToArabicWords(ticketId);
+            
+            // معالجة اسم المكتب لنطقه بلغة عربية سليمة ومشكولة
+            let spokenDesk = deskName
+                .replace(/مكتب\s*(\d+)/g, (match, p1) => `مَكْتَبِ ${convertTicketToArabicWords('X-' + p1).replace('حَرْفُ X ، رَقْمُ ', '')}`)
+                .replace(/-/g, '؛ ');
+
+            // صياغة النص الكامل بالتشكيل اللغوي
+            const speechText = `صَاحِبُ التَّذْكَرَة : ${spokenTicket} ، يَرْجَى التَّوَجُّهُ إِلَى ${spokenDesk}`;
+
+            const utterance = new SpeechSynthesisUtterance(speechText);
+            utterance.lang = 'ar-SA';
+            
+            // ضبط الخصائص لنبرة أكثر طبيعية وإنتاجية
+            utterance.rate = state.config.audio.rate || 0.85; // إبطاء خفيف لزيادة وضوح مخارج الحروف
+            utterance.pitch = state.config.audio.pitch || 1.05; // رفع طفيف للنبرة للابتعاد عن الصوت الروبوتي الخفيض
+
+            if (state.config.audio.voiceURI) {
+                const selectedVoice = availableVoices.find(v => v.voiceURI === state.config.audio.voiceURI);
+                if (selectedVoice) utterance.voice = selectedVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function saveConfigToCloud() {
+            dbRef.child('config').set(state.config).then(() => {
+                showToast("تم حفظ وتحديث الإعدادات سحابياً بنجاح");
+            }).catch(err => {
+                showToast("فشل حفظ الإعدادات بالسحابة", "error");
+            });
+        }
+
+        function saveQueueToCloud() {
+            const queueObj = {};
+            state.queue.forEach((t, idx) => {
+                queueObj[t.id || ('ticket_' + idx)] = t;
+            });
+            dbRef.child('queue').set(queueObj);
+        }
+
+        function applyConfigToUI() {
+            // Apply Branding
+            document.getElementById('displayAgencyName').innerText = state.config.agencyName;
+            document.getElementById('displayBranchName').innerText = state.config.branchName;
+            document.documentElement.style.setProperty('--brand-500', state.config.primaryColor);
+
+            if(state.config.logoUrl) {
+                document.getElementById('headerLogoImg').src = state.config.logoUrl;
+                document.getElementById('headerLogoImg').classList.remove('hidden');
+                document.getElementById('headerLogoIcon').classList.add('hidden');
+            } else {
+                document.getElementById('headerLogoImg').classList.add('hidden');
+                document.getElementById('headerLogoIcon').classList.remove('hidden');
+            }
+
+            // Apply Services to Kiosk
+            const custServiceSel = document.getElementById('custService');
+            if(custServiceSel) {
+                custServiceSel.innerHTML = '';
+                state.config.services.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.name;
+                    opt.innerText = `${s.name} (${s.prefix})`;
+                    custServiceSel.appendChild(opt);
+                });
+            }
+
+            // Apply Desks to Staff Select
+            const activeDeskSel = document.getElementById('activeDeskNumber');
+            if(activeDeskSel) {
+                activeDeskSel.innerHTML = '';
+                state.config.desks.filter(d => d.active).forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.name;
+                    opt.innerText = d.name;
+                    activeDeskSel.appendChild(opt);
+                });
+            }
+
+            // Apply Ticker Config
+            const tickerContainer = document.getElementById('tickerBarContainer');
+            const tickerAnimatedText = document.getElementById('tickerAnimatedText');
+            if(tickerContainer && tickerAnimatedText) {
+                if(state.config.ticker.enabled) {
+                    tickerContainer.classList.remove('hidden');
+                    tickerAnimatedText.innerText = state.config.ticker.text;
+                    tickerAnimatedText.className = `ticker-text animate-${state.config.ticker.speed}`;
+                } else {
+                    tickerContainer.classList.add('hidden');
+                }
+            }
+
+            // Populate Admin Inputs
+            document.getElementById('cfgAgencyName').value = state.config.agencyName;
+            document.getElementById('cfgBranchName').value = state.config.branchName;
+            document.getElementById('cfgPrimaryColor').value = state.config.primaryColor;
+            document.getElementById('cfgLogoUrl').value = state.config.logoUrl || '';
+            document.getElementById('cfgTickerText').value = state.config.ticker.text;
+            document.getElementById('cfgTickerEnabled').value = state.config.ticker.enabled ? 'true' : 'false';
+            document.getElementById('cfgTickerSpeed').value = state.config.ticker.speed;
+            document.getElementById('cfgTickerStyle').value = state.config.ticker.style;
+            document.getElementById('cfgAdminPin').value = state.config.adminPin;
+
+            if (state.config.audio) {
+                document.getElementById('cfgAudioEnabled').value = state.config.audio.enabled ? 'true' : 'false';
+                document.getElementById('cfgAudioRate').value = state.config.audio.rate || 0.85;
+                document.getElementById('cfgAudioPitch').value = state.config.audio.pitch || 1.05;
+                document.getElementById('rateValue').innerText = state.config.audio.rate || 0.85;
+                document.getElementById('pitchValue').innerText = state.config.audio.pitch || 1.05;
+            }
+
+            renderAdminDesksList();
+            renderAdminServicesList();
         }
 
         function toggleDarkMode() {
             document.documentElement.classList.toggle('dark');
         }
 
-        setInterval(() => {
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('en-CA');
-            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            const el = document.getElementById('displayDateTime');
-            if (el) el.innerText = `${dateStr} – ${timeStr}`;
-        }, 1000);
+        function switchAdminTab(tabName) {
+            document.querySelectorAll('.admin-sub-tab').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.admin-tab-btn').forEach(el => {
+                el.classList.remove('bg-brand-500', 'text-white');
+                el.classList.add('bg-slate-200', 'dark:bg-slate-800', 'text-slate-700', 'dark:text-slate-300');
+            });
 
-        function handleClientSubmission(e) {
-            e.preventDefault();
-            const dept = document.getElementById('cDept').value;
-            const prefix = dept === 'استقبال' ? 'A' : (dept === 'بحث اجتماعي' ? 'B' : 'C');
-            const ticketNo = `${prefix}-${Math.floor(100 + Math.random() * 900)}`;
-
-            document.getElementById('generatedTicketNum').innerText = ticketNo;
-            document.getElementById('generatedDeptName').innerText = `مكتب ${dept}`;
-            document.getElementById('ticketSuccessCard').classList.remove('hidden');
-            updateDisplay(ticketNo, dept);
+            const targetTab = document.getElementById('adminTab-' + tabName);
+            const targetBtn = document.getElementById('tabBtn-' + tabName);
+            if(targetTab && targetBtn) {
+                targetTab.classList.remove('hidden');
+                targetBtn.classList.remove('bg-slate-200', 'dark:bg-slate-800', 'text-slate-700', 'dark:text-slate-300');
+                targetBtn.classList.add('bg-brand-500', 'text-white');
+            }
         }
 
-        function updateDisplay(ticket, dept) {
-            const numBox = document.getElementById('dispCurrentNum');
-            const deptBox = document.getElementById('dispDeptName');
-            const animBox = document.getElementById('displayAnimationBox');
+        function renderAdminDesksList() {
+            const container = document.getElementById('desksListContainer');
+            if(!container) return;
+            container.innerHTML = '';
 
-            numBox.innerText = ticket;
-            deptBox.innerText = `مكتب ${dept}`;
-
-            if(dept === 'استقبال') numBox.className = "text-[130px] md:text-[180px] font-black tracking-wider text-deptReception my-2 leading-none";
-            else if(dept === 'بحث اجتماعي') numBox.className = "text-[130px] md:text-[180px] font-black tracking-wider text-deptSocial my-2 leading-none";
-            else numBox.className = "text-[130px] md:text-[180px] font-black tracking-wider text-deptServices my-2 leading-none";
-
-            animBox.classList.add('pulse-anim');
-            setTimeout(() => animBox.classList.remove('pulse-anim'), 800);
+            state.config.desks.forEach((desk, idx) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border dark:border-slate-700';
+                div.innerHTML = `
+                    <input type="text" value="${desk.name}" onchange="state.config.desks[${idx}].name = this.value" class="flex-1 px-3 py-2 rounded-xl border dark:border-slate-600 bg-white dark:bg-slate-900 text-xs font-bold">
+                    <input type="text" value="${desk.icon}" onchange="state.config.desks[${idx}].icon = this.value" class="w-32 px-3 py-2 rounded-xl border dark:border-slate-600 bg-white dark:bg-slate-900 text-xs font-mono" placeholder="fa-user">
+                    <button onclick="state.config.desks[${idx}].active = !state.config.desks[${idx}].active; renderAdminDesksList();" class="px-3 py-2 ${desk.active ? 'bg-emerald-600' : 'bg-slate-400'} text-white text-xs font-bold rounded-xl">
+                        ${desk.active ? 'نشط' : 'معطل'}
+                    </button>
+                    <button onclick="state.config.desks.splice(${idx}, 1); renderAdminDesksList();" class="px-3 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl">حذف</button>
+                `;
+                container.appendChild(div);
+            });
         }
 
-        function triggerIntegration(type) {
-            alert(`تم إرسال بيانات التذكرة ورابط التقييم بنجاح عبر بروتوكول ${type} API!`);
+        function addNewDeskConfig() {
+            const newId = 'desk_' + (state.config.desks.length + 1);
+            state.config.desks.push({
+                id: newId,
+                name: `مكتب ${state.config.desks.length + 1}`,
+                icon: "fa-desktop",
+                active: true
+            });
+            renderAdminDesksList();
         }
 
-        function empAction(actionType) {
-            const actions = {
-                'call': 'جاري النداء الصوتي على التذكرة عبر مكبرات الصوت المركزية...',
-                'recall': 'إعادة النداء على التذكرة الحالية...',
-                'skip': 'تم تخطي التذكرة بنجاح.',
-                'finish': 'تم إنهاء المعاملة وإرسال استبيان تقييم الخدمة للمستفيد.'
+        function saveDesksSettings() { saveConfigToCloud(); }
+
+        function renderAdminServicesList() {
+            const container = document.getElementById('servicesListContainer');
+            if(!container) return;
+            container.innerHTML = '';
+
+            state.config.services.forEach((s, idx) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border dark:border-slate-700';
+                div.innerHTML = `
+                    <input type="text" value="${s.name}" onchange="state.config.services[${idx}].name = this.value" class="flex-1 px-3 py-2 rounded-xl border dark:border-slate-600 bg-white dark:bg-slate-900 text-xs font-bold">
+                    <input type="text" value="${s.prefix}" onchange="state.config.services[${idx}].prefix = this.value" class="w-20 px-3 py-2 rounded-xl border dark:border-slate-600 bg-white dark:bg-slate-900 text-xs font-bold text-center latin-digits" placeholder="A">
+                    <button onclick="state.config.services.splice(${idx}, 1); renderAdminServicesList();" class="px-3 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl">حذف</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addNewServiceConfig() {
+            state.config.services.push({
+                id: 's_' + (state.config.services.length + 1),
+                name: 'خدمة جديدة',
+                prefix: 'S'
+            });
+            renderAdminServicesList();
+        }
+
+        function saveServicesSettings() { saveConfigToCloud(); }
+
+        function saveBrandingSettings() {
+            state.config.agencyName = document.getElementById('cfgAgencyName').value;
+            state.config.branchName = document.getElementById('cfgBranchName').value;
+            state.config.primaryColor = document.getElementById('cfgPrimaryColor').value;
+            state.config.logoUrl = document.getElementById('cfgLogoUrl').value;
+            saveConfigToCloud();
+        }
+
+        function saveTickerSettings() {
+            state.config.ticker.text = document.getElementById('cfgTickerText').value;
+            state.config.ticker.enabled = document.getElementById('cfgTickerEnabled').value === 'true';
+            state.config.ticker.speed = document.getElementById('cfgTickerSpeed').value;
+            state.config.ticker.style = document.getElementById('cfgTickerStyle').value;
+            saveConfigToCloud();
+        }
+
+        function saveAudioSettings() {
+            if (!state.config.audio) state.config.audio = {};
+            state.config.audio.enabled = document.getElementById('cfgAudioEnabled').value === 'true';
+            state.config.audio.voiceURI = document.getElementById('cfgAudioVoice').value;
+            state.config.audio.rate = parseFloat(document.getElementById('cfgAudioRate').value);
+            state.config.audio.pitch = parseFloat(document.getElementById('cfgAudioPitch').value);
+            saveConfigToCloud();
+        }
+
+        function testAudioSpeech() {
+            saveAudioSettings();
+            speakCall("A-101", "مكتب 1 - الاستقبال");
+        }
+
+        function saveSecuritySettings() {
+            const pin = document.getElementById('cfgAdminPin').value;
+            if(!pin) {
+                showToast("يرجى إدخال رمز صحيح", "error");
+                return;
+            }
+            state.config.adminPin = pin;
+            saveConfigToCloud();
+        }
+
+        function openRoleSelector() {
+            const lockedRole = localStorage.getItem('locked_role');
+            if(lockedRole && lockedRole !== 'admin') {
+                document.getElementById('adminUnlockModal').classList.remove('hidden');
+                window.pendingAction = 'unlockRole';
+                return;
+            }
+            document.getElementById('roleSelectorModal').classList.remove('hidden');
+        }
+
+        function selectRole(role) {
+            document.getElementById('roleSelectorModal').classList.add('hidden');
+            applyRole(role, true);
+        }
+
+        function lockScreenToRole(role) {
+            localStorage.setItem('locked_role', role);
+            showToast('تم تثبيت وعزل الشاشة على وضع: ' + role);
+        }
+
+        function applyRole(role, persist = true) {
+            state.currentRole = role;
+            if(persist && (role === 'display' || role === 'kiosk')) {
+                localStorage.setItem('locked_role', role);
+            }
+
+            const roleNames = {
+                kiosk: 'شاشة الاستقبال (Kiosk)',
+                display: 'شاشة عرض الانتظار العامة',
+                staff: 'لوحة تحكم الموظف',
+                search: 'الاستعلام المباشر',
+                admin: 'لوحة تحكم المدير والإعدادات'
             };
-            alert(actions[actionType]);
+
+            document.getElementById('currentRoleBadge').innerText = roleNames[role] || role;
+
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            const targetView = document.getElementById('view-' + role);
+            if(targetView) {
+                targetView.classList.add('active');
+            } else {
+                document.getElementById('view-kiosk').classList.add('active');
+            }
+            refreshAllViews();
+        }
+
+        function promptAdminAccess() {
+            document.getElementById('adminUnlockModal').classList.remove('hidden');
+            window.pendingAction = 'adminPanel';
+        }
+
+        function verifyAdminUnlock() {
+            const pin = document.getElementById('adminPinInput').value;
+            if(pin === state.config.adminPin) {
+                document.getElementById('adminUnlockModal').classList.add('hidden');
+                document.getElementById('adminPinInput').value = '';
+                localStorage.removeItem('locked_role');
+                showToast('تم التحقق بنجاح');
+                
+                if(window.pendingAction === 'adminPanel') {
+                    applyRole('admin', false);
+                } else {
+                    document.getElementById('roleSelectorModal').classList.add('hidden');
+                }
+                window.pendingAction = null;
+            } else {
+                showToast('رمز المرور خاطئ', 'error');
+            }
+        }
+
+        function handleTicketSubmit(e) {
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            const civil = document.getElementById('custCivil').value.trim();
+            const serviceName = document.getElementById('custService').value;
+
+            if(!name || !phone || !civil) {
+                showToast('يرجى تعبئة كافة الحقول المطلوبة', 'error');
+                return;
+            }
+
+            const selectedService = state.config.services.find(s => s.name === serviceName) || { prefix: 'A' };
+            const todayTickets = state.queue.filter(t => t.date === new Date().toLocaleDateString());
+            const seqNum = todayTickets.length + 1;
+            const ticketId = `${selectedService.prefix}-${100 + seqNum}`;
+
+            const newTicket = {
+                id: ticketId,
+                name: name,
+                phone: phone,
+                civil: civil,
+                service: serviceName,
+                status: 'انتظار',
+                desk: '-',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                date: new Date().toLocaleDateString()
+            };
+
+            state.queue.unshift(newTicket);
+            saveQueueToCloud();
+
+            document.getElementById('modalTicketId').innerText = ticketId;
+            document.getElementById('modalTicketDetails').innerText = `${name} - ${serviceName}`;
+            document.getElementById('ticketModal').classList.remove('hidden');
+
+            document.getElementById('custName').value = '';
+            document.getElementById('custPhone').value = '';
+            document.getElementById('custCivil').value = '';
+            
+            showToast('تم إصدار التذكرة السحابية بنجاح');
+        }
+
+        function refreshAllViews() {
+            const total = state.queue.length;
+            const completedCount = state.queue.filter(t => t.status === 'مكتمل').length;
+
+            const kioskTotal = document.getElementById('kioskTotalCount');
+            if(kioskTotal) kioskTotal.innerText = total;
+
+            // Dynamically Render Desks Grid on Display View
+            const displayDesksGrid = document.getElementById('displayDesksGrid');
+            if(displayDesksGrid) {
+                displayDesksGrid.innerHTML = '';
+                const activeDesks = state.config.desks.filter(d => d.active);
+                activeDesks.forEach((desk) => {
+                    const serving = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === desk.name);
+                    const div = document.createElement('div');
+                    div.className = 'bg-slate-800/90 rounded-2xl p-6 border border-slate-700 shadow-inner text-center flex flex-col justify-between space-y-4 hover:border-brand-500 transition duration-300';
+                    div.innerHTML = `
+                        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                            <span class="text-xs font-extrabold text-brand-500">${desk.name}</span>
+                            <div class="w-10 h-10 rounded-xl bg-brand-500/20 text-brand-500 flex items-center justify-center text-lg">
+                                <i class="fa-solid ${desk.icon || 'fa-desktop'}"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-[11px] text-slate-400 block mb-1">الرقم الحالي</span>
+                            <div class="text-5xl font-black text-emerald-400 font-mono latin-digits py-2 tracking-wider">${serving ? serving.id : '---'}</div>
+                        </div>
+                        <div class="text-[11px] text-slate-400 bg-slate-900/50 py-1.5 rounded-lg border border-slate-800 truncate">${serving ? serving.service : 'متاح للخدمة'}</div>
+                    `;
+                    displayDesksGrid.appendChild(div);
+                });
+            }
+
+            const statTotal = document.getElementById('statTotal');
+            const statCompleted = document.getElementById('statCompleted');
+            if(statTotal) statTotal.innerText = total;
+            if(statCompleted) statCompleted.innerText = completedCount;
+
+            const currentServingDisplay = document.getElementById('currentServingDisplay');
+            const currentDeskDisplay = document.getElementById('currentDeskDisplay');
+            const activeDeskSel = document.getElementById('activeDeskNumber');
+            const currentDeskVal = activeDeskSel ? activeDeskSel.value : (state.config.desks[0]?.name || 'مكتب 1');
+
+            const myServing = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === currentDeskVal);
+            if(currentServingDisplay) currentServingDisplay.innerText = myServing ? myServing.id : '---';
+            if(currentDeskDisplay) currentDeskDisplay.innerText = currentDeskVal;
+
+            // Render Staff Table
+            const staffTableBody = document.getElementById('counterQueueTableBody');
+            if(staffTableBody) {
+                staffTableBody.innerHTML = '';
+                state.queue.forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50 transition';
+                    tr.innerHTML = `
+                        <td class="p-3 font-bold font-mono latin-digits text-brand-500">${t.id}</td>
+                        <td class="p-3 font-semibold">${t.name}</td>
+                        <td class="p-3 font-mono latin-digits">${t.phone}</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[11px]">${t.service}</span></td>
+                        <td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${getStatusBadgeClass(t.status)}">${t.status}</span></td>
+                        <td class="p-3 text-center space-x-1 space-x-reverse">
+                            <button onclick="updateTicketStatusDirect('${t.id}', 'مكتمل')" class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold">إنجاز</button>
+                            <button onclick="updateTicketStatusDirect('${t.id}', 'ملغي')" class="px-2 py-1 bg-rose-100 text-rose-800 rounded text-[10px] font-bold">إلغاء</button>
+                        </td>
+                    `;
+                    staffTableBody.appendChild(tr);
+                });
+            }
+
+            // Render Admin Table
+            const adminTableBody = document.getElementById('adminQueueTableBody');
+            if(adminTableBody) {
+                adminTableBody.innerHTML = '';
+                state.queue.forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50 transition';
+                    tr.innerHTML = `
+                        <td class="p-3 font-bold font-mono latin-digits">${t.id}</td>
+                        <td class="p-3 font-semibold">${t.name}</td>
+                        <td class="p-3 font-mono latin-digits">${t.phone}</td>
+                        <td class="p-3 font-mono latin-digits">${t.civil}</td>
+                        <td class="p-3">${t.service}</td>
+                        <td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${getStatusBadgeClass(t.status)}">${t.status}</span></td>
+                        <td class="p-3 font-bold text-brand-500">${t.desk}</td>
+                        <td class="p-3 font-mono latin-digits text-slate-400">${t.time}</td>
+                    `;
+                    adminTableBody.appendChild(tr);
+                });
+            }
+        }
+
+        function callNextTicket() {
+            const waitingList = state.queue.filter(t => t.status === 'انتظار');
+            if(waitingList.length === 0) {
+                showToast('لا توجد تذاكر في قائمة الانتظار حالياً', 'error');
+                return;
+            }
+
+            const activeDeskSel = document.getElementById('activeDeskNumber');
+            const autoDesk = activeDeskSel ? activeDeskSel.value : 'مكتب 1';
+
+            state.queue.forEach(t => {
+                if(t.status === 'قيد الخدمة' && t.desk === autoDesk) {
+                    t.status = 'مكتمل';
+                }
+            });
+
+            const nextTicket = waitingList[0];
+            const targetTicket = state.queue.find(t => t.id === nextTicket.id);
+            if(targetTicket) {
+                targetTicket.status = 'قيد الخدمة';
+                targetTicket.desk = autoDesk;
+            }
+
+            saveQueueToCloud();
+            showToast(`تم استدعاء التذكرة ${nextTicket.id} إلى ${autoDesk}`);
+            speakCall(nextTicket.id, autoDesk);
+        }
+
+        function repeatCurrentCall() {
+            const activeDeskSel = document.getElementById('activeDeskNumber');
+            const desk = activeDeskSel ? activeDeskSel.value : 'مكتب 1';
+            const current = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === desk);
+            if(!current) {
+                showToast('لا توجد تذكرة قيد الخدمة حالياً على هذا المكتب', 'error');
+                return;
+            }
+            showToast(`تم إعادة النداء للمراجع ${current.id}`);
+            speakCall(current.id, desk);
+        }
+
+        function finishCurrentTicket() {
+            const activeDeskSel = document.getElementById('activeDeskNumber');
+            const desk = activeDeskSel ? activeDeskSel.value : 'مكتب 1';
+            const current = state.queue.find(t => t.status === 'قيد الخدمة' && t.desk === desk);
+            if(!current) {
+                showToast('لا توجد تذكرة نشطة لإنهاء خدمتها', 'error');
+                return;
+            }
+            current.status = 'مكتمل';
+            saveQueueToCloud();
+            showToast(`تم إنهاء خدمة التذكرة ${current.id}`);
+        }
+
+        function updateTicketStatusDirect(ticketId, newStatus) {
+            const ticket = state.queue.find(t => t.id === ticketId);
+            if(ticket) {
+                ticket.status = newStatus;
+                saveQueueToCloud();
+                showToast(`تم تغيير حالة التذكرة ${ticketId} إلى ${newStatus}`);
+            }
+        }
+
+        function getStatusBadgeClass(status) {
+            if(status === 'انتظار') return 'bg-amber-100 text-amber-800';
+            if(status === 'قيد الخدمة') return 'bg-sky-100 text-sky-800 animate-pulse';
+            if(status === 'مكتمل') return 'bg-emerald-100 text-emerald-800';
+            return 'bg-slate-100 text-slate-600';
+        }
+
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            const resultArea = document.getElementById('searchResultArea');
+            resultArea.innerHTML = '';
+
+            if(!query) {
+                showToast('يرجى إدخال رقم الجوال أو السجل المدني للبحث', 'error');
+                return;
+            }
+
+            const found = state.queue.filter(t => t.phone.includes(query) || t.civil.includes(query) || t.id.toLowerCase().includes(query.toLowerCase()));
+
+            if(found.length === 0) {
+                resultArea.innerHTML = `<div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl text-center text-xs text-slate-500">لم يتم العثور على أي تذاكر مطابقة لـ "${query}"</div>`;
+                return;
+            }
+
+            found.forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3';
+                div.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-brand-500 text-base font-mono latin-digits">${t.id}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusBadgeClass(t.status)}">${t.status}</span>
+                        </div>
+                        <p class="text-xs font-bold">${t.name} <span class="text-slate-500 font-normal">(${t.service})</span></p>
+                        <p class="text-[11px] text-slate-500 font-mono latin-digits">الجوال: ${t.phone} | المكتب: ${t.desk}</p>
+                    </div>
+                    <div class="text-left text-xs font-mono text-slate-400">وقت الإصدار: ${t.time}</div>
+                `;
+                resultArea.appendChild(div);
+            });
+        }
+
+        function exportToExcel() {
+            if(state.queue.length === 0) {
+                showToast('لا توجد بيانات لتصديرها', 'error');
+                return;
+            }
+            const dataToExport = state.queue.map(t => ({
+                'رقم التذكرة': t.id,
+                'اسم المراجع': t.name,
+                'رقم الجوال': t.phone,
+                'السجل المدني': t.civil,
+                'نوع الخدمة': t.service,
+                'الحالة': t.status,
+                'رقم المكتب': t.desk,
+                'وقت الإصدار': t.time,
+                'التاريخ': t.date
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "السجلات السحابية");
+            XLSX.writeFile(workbook, "Queue_Report_" + new Date().toISOString().slice(0,10) + ".xlsx");
+            showToast('تم تصدير ملف Excel بنجاح');
+        }
+
+        function clearAllQueueData() {
+            if(confirm('هل أنت متأكد من تصفير كافة السجلات السحابية؟')) {
+                state.queue = [];
+                dbRef.child('queue').set({}).then(() => {
+                    showToast('تمت تصفير السجلات السحابية بنجاح');
+                });
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            msgEl.innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
         }
     </script>
 </body>
