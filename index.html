@@ -1,13 +1,3 @@
-
-تم تطبيق التعديلات المطلوبة بدقة متناهية:
-
-1. **كشك التذاكر (Kiosk View):** أصبحت جميع البيانات (الاسم، رقم الجوال، ورقم الهوية) إلزامية بالكامل مع فحص برمجي صارم يمنع إصدار أو طباعة أي تذكرة إلا بعد تعبئة كافة الحقول، وتم تعديل محتوى الباركود (QR Code) ليحتوي **فقط وبشكل مباشر على أرقام الانتظار وعدد المتبقين والوقت التقديري**.
-2. **شاشة تتبع التذكرة (Tracker View):** تم تحويل الشاشة بالكامل إلى **شاشة عرض بيانية فقط** تعرض معلومات الرقم الحالي، التذكرة، الشباك المتوجه إليه، وعدد المراجعين المتبقين، مع إلغاء كافة نماذج التقييم والإدخال.
-3. **لوحة المدير والإعدادات (Admin Panel):** تمت إضافة نظام متكامل لإدارة **الألوان والثيمات** يتيح للمدير تخصيص اللون الرئيسي، ولون التمييز (Accent)، ولون خلفية الصفحات، ولون خلفية البطاقات مع تطبيق وحفظ التغييرات لحظياً عبر كامل النظام.
-
-إليك الكود البرمجي الكامل والجاهز للتشغيل مباشرة في ملف `index.html`:
-
-```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" class="dark">
 <head>
@@ -94,14 +84,25 @@
             border-radius: 4px;
         }
 
+        /* تحكم في ظهور إيصال التذكرة على الشاشة وفي الطباعة */
+        @media screen {
+            .thermal-receipt-wrapper {
+                display: none;
+            }
+            body[data-active-view="tracker"] .thermal-receipt-wrapper {
+                display: block;
+            }
+        }
+
         @media print {
             body * {
-                visibility: hidden;
+                visibility: hidden !important;
             }
             #thermal-ticket-print, #thermal-ticket-print * {
-                visibility: visible;
+                visibility: visible !important;
             }
             #thermal-ticket-print {
+                display: block !important;
                 position: absolute;
                 left: 0;
                 top: 0;
@@ -129,7 +130,7 @@
     <!-- Dynamic Theme Styling Injected by JavaScript -->
     <style id="dynamic-theme-styles"></style>
 </head>
-<body id="app-body" class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+<body id="app-body" data-active-view="kiosk" class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
 
     <!-- Header & Navigation -->
     <header class="no-print sticky top-0 z-40 bg-white/90 dark:bg-slate-800/90 backdrop-blur border-b border-slate-200 dark:border-slate-700 shadow-sm">
@@ -163,7 +164,7 @@
                     <i class="fa-solid fa-user-tie ml-1"></i> شباك الموظف
                 </button>
                 <button onclick="switchView('tracker')" class="nav-tab px-3 py-1.5 text-xs font-semibold rounded-lg transition" data-view="tracker">
-                    <i class="fa-solid fa-desktop ml-1"></i> شاشة عرض الرقم
+                    <i class="fa-solid fa-desktop ml-1"></i> تتبع التذكرة
                 </button>
                 <button onclick="switchView('search')" class="nav-tab px-3 py-1.5 text-xs font-semibold rounded-lg transition" data-view="search">
                     <i class="fa-solid fa-magnifying-glass ml-1"></i> استعلام
@@ -174,17 +175,15 @@
             </nav>
 
             <div class="flex items-center gap-2">
-                <!-- زر تبديل الوضع الداكن -->
                 <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400 flex items-center justify-center transition">
                     <i id="theme-icon" class="fa-solid fa-sun"></i>
                 </button>
-                <!-- قائمة الجوال -->
                 <div class="md:hidden">
-                    <select onchange="switchView(this.value)" class="bg-slate-100 dark:bg-slate-700 text-xs rounded-lg p-2 font-bold focus:ring-brand-600">
+                    <select id="mobile-nav-select" onchange="switchView(this.value)" class="bg-slate-100 dark:bg-slate-700 text-xs rounded-lg p-2 font-bold focus:ring-brand-600">
                         <option value="kiosk">كشك التذاكر</option>
                         <option value="display">شاشة العرض</option>
                         <option value="staff">شباك الموظف</option>
-                        <option value="tracker">شاشة عرض الرقم</option>
+                        <option value="tracker">تتبع التذكرة</option>
                         <option value="search">استعلام سريع</option>
                         <option value="admin">لوحة الإدارة</option>
                     </select>
@@ -213,14 +212,14 @@
                 </div>
             </div>
 
-            <!-- تنبيه الحقول الإلزامية عند الخطأ -->
+            <!-- تنبيه الحقول الإلزامية -->
             <div id="kiosk-validation-alert" class="hidden p-4 rounded-2xl bg-rose-500/15 border-2 border-rose-500 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center gap-2 animate-bounce">
                 <i class="fa-solid fa-circle-exclamation text-base"></i>
                 <span>عذراً، يجب تعبئة كافة البيانات الإلزامية أدناه (الاسم، الجوال، والهوية) لتتمكن من إصدار التذكرة!</span>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- نموذج البيانات -->
+                <!-- نموذج البيانات الإلزامي -->
                 <div class="lg:col-span-2 app-card bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-5">
                     <div class="flex items-center justify-between">
                         <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
@@ -251,7 +250,6 @@
                         <input type="text" id="kiosk-national-id" placeholder="10xxxxxxxx" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-600 focus:outline-none num-latin text-right">
                     </div>
 
-                    <!-- نوع التذكرة: عادي أو أولوية VIP -->
                     <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
@@ -270,16 +268,13 @@
                         </div>
                     </div>
 
-                    <!-- قائمة الخدمات المتاحة -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">اختر الخدمة لطباعة وإصدار التذكرة فوراً:</label>
-                        <div id="kiosk-services-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <!-- يتم تعبئتها ديناميكياً بواسطة JS -->
-                        </div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">اختر الخدمة لإصدار التذكرة فوراً:</label>
+                        <div id="kiosk-services-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     </div>
                 </div>
 
-                <!-- بطاقة التذكرة الصادرة والباركود -->
+                <!-- بطاقة التذكرة الصادرة -->
                 <div class="app-card bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
                     <div id="kiosk-result-empty" class="text-center py-12 space-y-3">
                         <div class="w-16 h-16 mx-auto rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center text-2xl text-slate-400">
@@ -289,7 +284,6 @@
                         <p class="text-xs text-slate-400">قم بتعبئة بياناتك أولاً ثم انقر على الخدمة المطلوبة لطباعة التذكرة وتوليد باركود الانتظار.</p>
                     </div>
 
-                    <!-- بطاقة النتيجة الحية -->
                     <div id="kiosk-result-card" class="hidden space-y-5 text-center">
                         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-bold">
                             <i class="fa-solid fa-circle-check"></i> تم إصدار التذكرة بنجاح
@@ -314,16 +308,17 @@
                             </div>
                         </div>
 
-                        <!-- باركود يعرض فقط أرقام الانتظار والمتبقي -->
                         <div class="flex flex-col items-center">
                             <div id="kiosk-qrcode" class="p-3 bg-white rounded-xl shadow-inner border border-slate-200"></div>
-                            <span class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-medium">الباركود يعرض مباشرة: رقم تذكرتك وعدد المتبقين في الدور</span>
+                            <span class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-medium">امسح الباركود بهاتفك لتتبع دورك مباشرة</span>
                         </div>
 
-                        <!-- أزرار الإجراءات والطباعة -->
-                        <div class="grid grid-cols-1 gap-2 pt-2">
+                        <div class="grid grid-cols-2 gap-2 pt-2">
                             <button onclick="printThermalTicket()" class="w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-print"></i> طباعة التذكرة
+                                <i class="fa-solid fa-print"></i> طباعة ورقية
+                            </button>
+                            <button onclick="openLiveTrackerDirectly()" class="w-full py-2.5 px-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-eye"></i> شاشة التتبع
                             </button>
                         </div>
                     </div>
@@ -336,7 +331,6 @@
         <!-- ============================================== -->
         <section id="view-display" class="view-panel hidden flex-1 flex flex-col space-y-4">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1">
-                <!-- منطقة أرقام الانتظار والنداء المباشر -->
                 <div class="lg:col-span-7 app-card bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-200 dark:border-slate-700 shadow-md flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
@@ -347,7 +341,6 @@
                             <div class="text-sm font-bold text-slate-500 num-latin" id="display-clock">--:--:--</div>
                         </div>
 
-                        <!-- كارت النداء المباشر -->
                         <div id="latest-called-banner" class="mt-4 p-5 rounded-2xl bg-brand-50 dark:bg-brand-950/40 border-2 border-brand-500 text-center transition-all duration-300">
                             <span class="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300">النداء الحالي المباشر</span>
                             <div class="flex items-center justify-center gap-6 my-2">
@@ -366,14 +359,12 @@
                             <span id="banner-service-name" class="text-xs font-semibold text-slate-600 dark:text-slate-300">في انتظار النداء</span>
                         </div>
 
-                        <!-- شبكة كروت المكاتب -->
                         <div class="mt-4">
                             <h4 class="text-xs font-bold text-slate-400 mb-2">حالة المكاتب والشاشات</h4>
                             <div id="display-counters-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
                         </div>
                     </div>
 
-                    <!-- إحصائيات سريعة أسفل شاشة العرض -->
                     <div class="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-3 text-center">
                         <div>
                             <span class="text-xs text-slate-400 block font-semibold">بانتظار الخدمة</span>
@@ -390,7 +381,6 @@
                     </div>
                 </div>
 
-                <!-- منطقة الوسائط والفيديو التوعوي -->
                 <div class="lg:col-span-5 app-card bg-white dark:bg-slate-800 rounded-3xl p-4 border border-slate-200 dark:border-slate-700 shadow-md flex flex-col">
                     <div class="flex items-center gap-2 mb-3 px-2">
                         <i class="fa-solid fa-circle-play text-red-500"></i>
@@ -411,7 +401,6 @@
                 </div>
             </div>
 
-            <!-- شريط الأخبار المتحرك -->
             <div id="display-marquee-container" class="bg-brand-900 text-white py-2.5 px-4 rounded-2xl overflow-hidden shadow flex items-center gap-3">
                 <span class="bg-brand-600 text-white text-xs font-black px-2.5 py-1 rounded-lg shrink-0 flex items-center gap-1">
                     <i class="fa-solid fa-bullhorn"></i> إعلانات
@@ -446,7 +435,6 @@
                 </div>
             </div>
 
-            <!-- بطاقة التذكرة الحالية والعمليات -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2 app-card bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
                     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4">
@@ -509,63 +497,81 @@
         </section>
 
         <!-- ==================================================================== -->
-        <!-- VIEW 4: شاشة عرض معلومات الرقم فقط (Display-Only Ticket Info Screen) -->
+        <!-- VIEW 4: شاشة عرض معلومات الرقم المباشرة وتتبع التذكرة                -->
         <!-- ==================================================================== -->
         <section id="view-tracker" class="view-panel hidden max-w-2xl mx-auto w-full space-y-6">
             <div class="app-card bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-lg text-center space-y-6">
                 <div class="flex items-center justify-center gap-3">
                     <div class="w-12 h-12 rounded-2xl bg-brand-100 dark:bg-brand-900/40 text-brand-600 flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-display"></i>
+                        <i class="fa-solid fa-satellite-dish animate-pulse"></i>
                     </div>
                     <div class="text-right">
-                        <h3 class="text-xl font-black text-slate-800 dark:text-white">شاشة عرض معلومات الرقم المباشرة</h3>
-                        <p class="text-xs text-slate-400">شاشة عرض فقط - تعرض معلومات وموقع رقم التذكرة في الطابور</p>
+                        <h3 class="text-xl font-black text-slate-800 dark:text-white">التتبع الحي المباشر لتذكرتك</h3>
+                        <p class="text-xs text-slate-400">تابع دورك لحظة بلحظة دون الحاجة للوقوف داخل صالة الانتظار</p>
                     </div>
                 </div>
 
-                <!-- مربع إدخال رقم التذكرة للعرض فقط -->
+                <!-- إدخال رقم التذكرة للبحث السريع -->
                 <div class="flex gap-2">
-                    <input type="text" id="tracker-input-code" placeholder="أدخل رمز التذكرة لعرض بياناتها (مثال: A-101)" class="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-center font-bold text-brand-600 text-lg num-latin focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    <input type="text" id="tracker-input-code" placeholder="أدخل رمز تذكرتك (مثال: B-101)" class="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-center font-bold text-brand-600 text-lg num-latin focus:ring-2 focus:ring-brand-500 focus:outline-none">
                     <button onclick="trackSpecificTicket()" class="px-6 py-3 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition">
-                        عرض الرقم
+                        تتبع
                     </button>
                 </div>
 
-                <!-- كارت العرض الشامل للرقم فقط (Display Only) -->
+                <!-- كارت الحالة المباشر (البطاقة العلوية) -->
                 <div id="tracker-status-box" class="border-2 border-brand-500/40 bg-brand-50/40 dark:bg-brand-950/20 p-6 rounded-3xl space-y-5">
                     <div class="flex justify-between items-center text-xs font-bold border-b border-slate-200 dark:border-slate-700/60 pb-3">
-                        <span class="text-slate-500">حالة التذكرة الحالية:</span>
+                        <span class="text-slate-500">حالة التذكرة:</span>
                         <span id="tracker-status-badge" class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-bold">بانتظار إدخال الرقم</span>
                     </div>
 
                     <div class="py-2">
-                        <span class="text-xs text-slate-400 block font-semibold mb-1">رقم التذكرة</span>
+                        <span class="text-xs text-slate-400 block font-semibold mb-1">تذكرتك هي</span>
                         <h2 id="tracker-display-code" class="text-6xl font-black text-brand-600 num-latin tracking-wider my-1">---</h2>
                         <span id="tracker-display-service" class="text-sm font-bold text-slate-600 dark:text-slate-300">لم يتم تحديد تذكرة</span>
                     </div>
 
-                    <!-- إشعار التوجه للشباك فورا عند النداء -->
                     <div id="tracker-target-counter-box" class="hidden p-4 bg-emerald-500 text-white rounded-2xl font-black text-base shadow-lg animate-pulse">
-                        <i class="fa-solid fa-bell ml-1"></i> تم نداء رقمك الآن! يرجى التوجه فوراً إلى: <span id="tracker-target-counter" class="underline decoration-2">مكتب 1</span>
+                        <i class="fa-solid fa-bell ml-1"></i> حان دورك الآن! يرجى التوجه إلى: <span id="tracker-target-counter" class="underline decoration-2">مكتب 1</span>
                     </div>
 
-                    <!-- المؤشرات الرقمية الحصرية للعرض -->
                     <div class="grid grid-cols-3 gap-3 pt-3 border-t border-slate-200 dark:border-slate-700 text-center">
                         <div class="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
-                            <span class="text-[11px] text-slate-400 block font-semibold">المتبقي أمامك</span>
+                            <span class="text-[11px] text-slate-400 block font-semibold">أمامك الآن</span>
                             <span id="tracker-display-ahead" class="text-2xl font-black text-slate-800 dark:text-white num-latin">0</span>
-                            <span class="text-[10px] text-slate-400 block">مراجعين</span>
                         </div>
                         <div class="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
-                            <span class="text-[11px] text-slate-400 block font-semibold">الرقم المستدعى حالياً</span>
+                            <span class="text-[11px] text-slate-400 block font-semibold">تُخدم حالياً</span>
                             <span id="tracker-display-current" class="text-2xl font-black text-brand-600 num-latin">---</span>
-                            <span class="text-[10px] text-slate-400 block">قيد الخدمة</span>
                         </div>
                         <div class="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
-                            <span class="text-[11px] text-slate-400 block font-semibold">الوقت التقديري</span>
+                            <span class="text-[11px] text-slate-400 block font-semibold">الوقت المتبقي</span>
                             <span id="tracker-display-eta" class="text-2xl font-black text-emerald-600 num-latin">--</span>
-                            <span class="text-[10px] text-slate-400 block">دقيقة تقريباً</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- بطاقة التذكرة السفلية (المتزامنة تفاعلياً 100% مع الرقم العلوي) -->
+                <div class="thermal-receipt-wrapper pt-4">
+                    <div id="thermal-ticket-print" class="max-w-sm mx-auto p-6 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl text-center font-mono shadow-sm">
+                        <h2 id="print-org-name" class="font-bold text-lg text-slate-800 dark:text-white mb-1">نظام الانتظار السحابي</h2>
+                        <p id="print-branch-name" class="text-xs text-slate-500 mb-2">الفرع الرئيسي</p>
+                        <p class="text-slate-300 dark:text-slate-700">====================</p>
+                        <p class="text-xs font-bold text-slate-400 my-1">رقم التذكرة</p>
+                        <h1 id="print-ticket-code" class="text-5xl font-black my-2 text-brand-600 num-latin">---</h1>
+                        <p id="print-service-name" class="text-sm font-bold text-slate-700 dark:text-slate-200">الخدمة</p>
+                        <p id="print-priority-label" class="text-xs font-bold my-1 text-amber-500" style="display:none;">*** تذكرة أولوية خاصة ***</p>
+                        <p class="text-slate-300 dark:text-slate-700">--------------------</p>
+                        <div style="font-size: 11px; text-align: right; margin: 8px 0;" class="space-y-1 text-slate-600 dark:text-slate-400 font-sans">
+                            <p class="flex justify-between"><span>التاريخ والوقت:</span> <span id="print-timestamp" class="num-latin">--:--</span></p>
+                            <p class="flex justify-between"><span>المراجعين أمامك:</span> <span id="print-ahead-count" class="font-bold num-latin">0</span></p>
+                            <p class="flex justify-between"><span>الوقت التقديري:</span> <span id="print-eta-time" class="font-bold num-latin">0 دقائق</span></p>
+                        </div>
+                        <p class="text-slate-300 dark:text-slate-700">--------------------</p>
+                        <div id="print-qrcode-container" class="flex justify-center my-3"></div>
+                        <p class="text-[10px] text-slate-400 font-sans">امسح الباركود لتتبع تذكرتك عن بعد</p>
+                        <p id="print-custom-footer" class="text-[10px] mt-2 text-slate-500 font-sans">نسعد بخدمتكم دائماً</p>
                     </div>
                 </div>
             </div>
@@ -599,7 +605,6 @@
         <!-- VIEW 6: لوحة المدير والإعدادات الشاملة (Admin, Colors & Theme)   -->
         <!-- ================================================================= -->
         <section id="view-admin" class="view-panel hidden space-y-6">
-            <!-- شاشة القفل وإدخال رمز PIN -->
             <div id="admin-auth-lock" class="max-w-md mx-auto app-card bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-lg text-center space-y-4">
                 <div class="w-16 h-16 rounded-2xl bg-brand-100 dark:bg-brand-900/50 text-brand-600 flex items-center justify-center mx-auto text-2xl">
                     <i class="fa-solid fa-shield-halved"></i>
@@ -614,9 +619,7 @@
                 </button>
             </div>
 
-            <!-- المحتوى الإداري الكامل -->
             <div id="admin-content" class="hidden space-y-6">
-                <!-- إشعار تنبيه الازدحام -->
                 <div id="congestion-alert-banner" class="hidden p-4 rounded-2xl bg-rose-500 text-white shadow-lg flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <i class="fa-solid fa-triangle-exclamation text-2xl animate-bounce"></i>
@@ -628,7 +631,6 @@
                     <span id="congestion-count-badge" class="px-3 py-1 bg-white text-rose-600 font-black rounded-lg text-xs num-latin">0 معلق</span>
                 </div>
 
-                <!-- بطاقات مؤشرات الأداء المتقدمة (KPIs) -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="app-card bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center text-xl">
@@ -671,7 +673,6 @@
                     </div>
                 </div>
 
-                <!-- تبويبات إدارة النظام -->
                 <div class="app-card bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                     <div class="flex border-b border-slate-200 dark:border-slate-700 overflow-x-auto p-2 gap-2 bg-slate-50 dark:bg-slate-900/50">
                         <button onclick="switchAdminTab('theme')" class="admin-tab active px-4 py-2 rounded-xl text-xs font-bold transition bg-brand-600 text-white" data-atab="theme">
@@ -694,7 +695,7 @@
                         </button>
                     </div>
 
-                    <!-- تبويب إدارة الألوان والثيم وتخصيص الصفحات والخلفيات -->
+                    <!-- تبويب إدارة الألوان والثيم -->
                     <div id="atab-content-theme" class="admin-tab-content p-6 space-y-6">
                         <div>
                             <h4 class="font-bold text-slate-800 dark:text-white text-base">تخصيص ثيم وألوان النظام والخلفيات</h4>
@@ -735,21 +736,20 @@
                             </div>
                         </div>
 
-                        <!-- قوالب ثيمات جاهزة سريعة -->
                         <div class="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
-                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-300">أو اختر من التنسيقات اللونية الجاهزة:</label>
+                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-300">قوالب ثيمات جاهزة سريعة:</label>
                             <div class="flex flex-wrap gap-2">
                                 <button onclick="applyPresetTheme('#0d9488', '#14b8a6', '#0f172a', '#1e293b')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-800 text-teal-100 hover:opacity-90">
-                                    فيروزي حديث (افتراضي)
+                                    فيروزي حديث (الافتراضي)
                                 </button>
                                 <button onclick="applyPresetTheme('#2563eb', '#3b82f6', '#090d16', '#111827')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-700 text-blue-100 hover:opacity-90">
                                     أزرق مؤسسي فخم
                                 </button>
                                 <button onclick="applyPresetTheme('#7c3aed', '#8b5cf6', '#130c25', '#1e1438')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-700 text-purple-100 hover:opacity-90">
-                                    بنفسجي إبداعي رويال
+                                    بنفسجي رويال
                                 </button>
                                 <button onclick="applyPresetTheme('#059669', '#10b981', '#061a12', '#0c2e22')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-700 text-emerald-100 hover:opacity-90">
-                                    أخضر زمردي رسمي
+                                    أخضر زمردي
                                 </button>
                                 <button onclick="applyPresetTheme('#dc2626', '#ef4444', '#1f0d0d', '#2e1515')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-700 text-rose-100 hover:opacity-90">
                                     عنابي طوارئ ديناميكي
@@ -767,7 +767,7 @@
                         </div>
                     </div>
 
-                    <!-- محتوى التبويب 2: الخدمات -->
+                    <!-- الخدمات -->
                     <div id="atab-content-services" class="admin-tab-content hidden p-6 space-y-5">
                         <div class="flex justify-between items-center">
                             <h4 class="font-bold text-slate-800 dark:text-white text-sm">قائمة الخدمات المتاحة ورموز التذاكر</h4>
@@ -791,7 +791,7 @@
                         </div>
                     </div>
 
-                    <!-- محتوى التبويب 3: المكاتب -->
+                    <!-- المكاتب -->
                     <div id="atab-content-counters" class="admin-tab-content hidden p-6 space-y-5">
                         <div class="flex justify-between items-center">
                             <h4 class="font-bold text-slate-800 dark:text-white text-sm">قائمة الشبابيك والمكاتب المتاحة</h4>
@@ -815,7 +815,7 @@
                         </div>
                     </div>
 
-                    <!-- محتوى التبويب 4: الهوية والشاشة -->
+                    <!-- الهوية والشاشة -->
                     <div id="atab-content-branding" class="admin-tab-content hidden p-6 space-y-5">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -856,7 +856,7 @@
                         </button>
                     </div>
 
-                    <!-- محتوى التبويب 5: Firebase -->
+                    <!-- Firebase -->
                     <div id="atab-content-firebase" class="admin-tab-content hidden p-6 space-y-5">
                         <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300">
                             <i class="fa-solid fa-circle-info ml-1"></i>
@@ -879,7 +879,7 @@
                         </button>
                     </div>
 
-                    <!-- محتوى التبويب 6: التقارير وتصدير Excel -->
+                    <!-- التقارير -->
                     <div id="atab-content-reports" class="admin-tab-content hidden p-6 space-y-5">
                         <div class="flex flex-wrap gap-3 items-center justify-between">
                             <div>
@@ -918,27 +918,6 @@
         </section>
 
     </main>
-
-    <!-- قالب التذكرة للطباعة الحرارية المباشرة -->
-    <div id="thermal-ticket-print" class="text-center font-mono p-4">
-        <h2 id="print-org-name" class="font-bold text-lg mb-1">نظام الانتظار السحابي</h2>
-        <p id="print-branch-name" class="text-xs mb-2">الفرع الرئيسي</p>
-        <p>================================</p>
-        <p class="text-xs my-1">رقم التذكرة</p>
-        <h1 id="print-ticket-code" class="text-4xl font-black my-2">A-101</h1>
-        <p id="print-service-name" class="text-sm font-bold">خدمة العملاء</p>
-        <p id="print-priority-label" class="text-xs font-bold my-1">*** تذكرة أولوية خاصة ***</p>
-        <p>--------------------------------</p>
-        <div style="font-size: 11px; text-align: right; margin: 6px 0;">
-            <p>التاريخ والوقت: <span id="print-timestamp">2026-09-07 10:00</span></p>
-            <p>المراجعين أمامك: <span id="print-ahead-count">0</span></p>
-            <p>الوقت التقديري: <span id="print-eta-time">0 دقائق</span></p>
-        </div>
-        <p>--------------------------------</p>
-        <div id="print-qrcode-container" style="display: flex; justify-content: center; margin: 8px 0;"></div>
-        <p class="text-[10px] font-bold">معلومات الدور المتبقي مسجلة بالباركود أعلاه</p>
-        <p id="print-custom-footer" class="text-[10px] mt-2">نسعد بخدمتكم دائماً</p>
-    </div>
 
     <!-- Modals -->
     <div id="modal-service" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
@@ -1004,7 +983,7 @@
     <!-- JavaScript Application Logic                   -->
     <!-- ============================================== -->
     <script>
-        const STORAGE_KEY = 'smart_queue_system_data_v2';
+        const STORAGE_KEY = 'smart_queue_system_data_v3';
         let firebaseDB = null;
         let isFirebaseConnected = false;
         let currentStaffCounterId = 'c1';
@@ -1047,7 +1026,7 @@
             appState.settings.theme = defaultState.settings.theme;
         }
 
-        // تطبيق وحفظ الثيم الديناميكي الكامل
+        // تطبيق الألوان والثيم
         function applyCustomTheme() {
             const theme = appState.settings.theme || defaultState.settings.theme;
             const styleTag = document.getElementById('dynamic-theme-styles');
@@ -1083,7 +1062,6 @@
                 }
             `;
 
-            // تحديث قيم حقول الألوان في لوحة التحكم
             const pInput = document.getElementById('theme-color-primary');
             const aInput = document.getElementById('theme-color-accent');
             const bgInput = document.getElementById('theme-color-bg');
@@ -1132,7 +1110,6 @@
             applyPresetTheme('#0d9488', '#14b8a6', '#0f172a', '#1e293b');
         }
 
-        // ربط ألوان الـ Pickers مع الـ Hex Inputs
         function setupColorInputs() {
             ['primary', 'accent', 'bg', 'card'].forEach(key => {
                 const picker = document.getElementById(`theme-color-${key}`);
@@ -1198,7 +1175,6 @@
             }
         }
 
-        // محرك الصوت والنطق
         function playChimeSound() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -1220,7 +1196,7 @@
                 osc1.start(now);
                 osc1.stop(now + 1.2);
             } catch (e) {
-                console.log('Audio error:', e);
+                console.log('Audio chime error:', e);
             }
         }
 
@@ -1274,9 +1250,9 @@
             }, 550);
         }
 
-        // ===================================================================
-        // كشك التذاكر: التحقق الإلزامي من جميع البيانات + محتوى الباركود الحصري
-        // ===================================================================
+        // ==============================================
+        // إصدار التذاكر والباركود (Kiosk)
+        // ==============================================
         function issueKioskTicket(serviceId) {
             const nameInput = document.getElementById('kiosk-name');
             const phoneInput = document.getElementById('kiosk-phone');
@@ -1287,7 +1263,6 @@
             const phone = phoneInput.value.trim();
             const nationalId = nationalIdInput.value.trim();
 
-            // شرط حازم: عدم طباعة أو إصدار أي تذكرة إلا بتعبئة جميع البيانات
             if (!name || !phone || !nationalId) {
                 validationAlert.classList.remove('hidden');
                 if (!name) nameInput.focus();
@@ -1296,7 +1271,6 @@
                 return;
             }
 
-            // إخفاء تنبيه الخطأ عند استيفاء الحقول
             validationAlert.classList.add('hidden');
 
             const service = appState.services.find(s => s.id === serviceId);
@@ -1327,9 +1301,9 @@
             appState.tickets.push(newTicket);
             saveState();
 
+            currentTrackingTicketId = newTicket.id;
             renderKioskResult(newTicket);
 
-            // إعادة تعيين الحقول
             nameInput.value = '';
             phoneInput.value = '';
             nationalIdInput.value = '';
@@ -1351,13 +1325,12 @@
             document.getElementById('ticket-res-ahead').textContent = ahead;
             document.getElementById('ticket-res-eta').textContent = `~ ${Math.max(1, ahead * 4)} دقيقة`;
 
-            // الباركود: يعرض فقط أرقام الانتظار وكم متبقي نصياً
-            const qrTextContent = `رقم التذكرة: ${ticket.code}\nالمراجعون في الانتظار قبلك: ${ahead}\nالوقت التقديري المتوقع: ${Math.max(1, ahead * 4)} دقيقة\nالخدمة: ${ticket.serviceName}`;
-            
+            // باركود ذكي يحمل رابط التتبع المباشر لهذه التذكرة
+            const directTrackUrl = `${window.location.origin}${window.location.pathname}?track=${ticket.code}`;
             const qrContainer = document.getElementById('kiosk-qrcode');
             qrContainer.innerHTML = '';
             new QRCode(qrContainer, {
-                text: qrTextContent,
+                text: directTrackUrl,
                 width: 120,
                 height: 120,
                 colorDark: "#0f172a",
@@ -1365,36 +1338,174 @@
                 correctLevel: QRCode.CorrectLevel.M
             });
 
-            prepareThermalPrint(ticket, ahead, qrTextContent);
+            // تحديث بطاقة التذكرة السفلية فوراً بالتوازي
+            updateThermalReceiptElements(ticket, ahead);
         }
 
-        function prepareThermalPrint(ticket, ahead, qrText) {
-            document.getElementById('print-org-name').textContent = appState.settings.orgName;
-            document.getElementById('print-branch-name').textContent = appState.settings.branchName;
-            document.getElementById('print-ticket-code').textContent = ticket.code;
-            document.getElementById('print-service-name').textContent = ticket.serviceName;
-            document.getElementById('print-priority-label').style.display = ticket.isPriority ? 'block' : 'none';
-            document.getElementById('print-timestamp').textContent = new Date(ticket.createdAt).toLocaleString('en-US');
-            document.getElementById('print-ahead-count').textContent = ahead;
-            document.getElementById('print-eta-time').textContent = `${Math.max(1, ahead * 4)} دقيقة`;
-            document.getElementById('print-custom-footer').textContent = appState.settings.printFooter;
-
-            const printQrBox = document.getElementById('print-qrcode-container');
-            printQrBox.innerHTML = '';
-            new QRCode(printQrBox, {
-                text: qrText,
-                width: 95,
-                height: 95,
-                colorDark: "#000000",
-                colorLight: "#ffffff"
-            });
+        function openLiveTrackerDirectly() {
+            if (currentTrackingTicketId) {
+                switchView('tracker');
+                renderTrackerView();
+            }
         }
 
         function printThermalTicket() {
             window.print();
         }
 
-        // شاشة الموظف
+        // =========================================================================
+        // الدالة المسؤولة عن تحديث الإيصال السفلي وجعله متطابقاً تفاعلياً مع الرقم العلوي
+        // =========================================================================
+        function updateThermalReceiptElements(ticket, aheadCount) {
+            if (!ticket) return;
+
+            // تحديث الرقم السفلي ليتطابق مع العلوي تماماً
+            const printTicketCode = document.getElementById('print-ticket-code');
+            if (printTicketCode) printTicketCode.textContent = ticket.code;
+
+            const printServiceName = document.getElementById('print-service-name');
+            if (printServiceName) printServiceName.textContent = ticket.serviceName;
+
+            const printAheadCount = document.getElementById('print-ahead-count');
+            if (printAheadCount) printAheadCount.textContent = aheadCount !== undefined ? aheadCount : 0;
+
+            const printEtaTime = document.getElementById('print-eta-time');
+            if (printEtaTime) {
+                if (ticket.status === 'serving') {
+                    printEtaTime.textContent = 'الآن قيد النداء';
+                } else if (ticket.status === 'completed') {
+                    printEtaTime.textContent = 'تمت الخدمة بنجاح';
+                } else {
+                    printEtaTime.textContent = `${Math.max(1, (aheadCount || 0) * 4)} دقائق تقريباً`;
+                }
+            }
+
+            const printTimestamp = document.getElementById('print-timestamp');
+            if (printTimestamp) {
+                const dateObj = ticket.createdAt ? new Date(ticket.createdAt) : new Date();
+                printTimestamp.textContent = dateObj.toLocaleString('en-US');
+            }
+
+            const printOrgName = document.getElementById('print-org-name');
+            if (printOrgName) printOrgName.textContent = appState.settings.orgName;
+
+            const printBranchName = document.getElementById('print-branch-name');
+            if (printBranchName) printBranchName.textContent = appState.settings.branchName;
+
+            const printPriorityLabel = document.getElementById('print-priority-label');
+            if (printPriorityLabel) {
+                printPriorityLabel.style.display = ticket.isPriority ? 'block' : 'none';
+            }
+
+            const printCustomFooter = document.getElementById('print-custom-footer');
+            if (printCustomFooter) {
+                printCustomFooter.textContent = appState.settings.printFooter;
+            }
+
+            // تحديث الباركود الصغير في الإيصال السفلي ليعكس تذكرة المراجع الحالية
+            const printQrBox = document.getElementById('print-qrcode-container');
+            if (printQrBox) {
+                printQrBox.innerHTML = '';
+                const directUrl = `${window.location.origin}${window.location.pathname}?track=${ticket.code}`;
+                new QRCode(printQrBox, {
+                    text: directUrl,
+                    width: 95,
+                    height: 95,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            }
+        }
+
+        // =========================================================================
+        // شاشة تتبع التذكرة: تحديث الرقمين العلوي والسفلي معاً بشكل متزامن
+        // =========================================================================
+        function trackSpecificTicket(codeOverride) {
+            const inputField = document.getElementById('tracker-input-code');
+            const code = (codeOverride || (inputField ? inputField.value : '')).trim().toUpperCase();
+            if (!code) {
+                alert('يرجى إدخال رمز التذكرة أولاً.');
+                return;
+            }
+
+            const ticket = appState.tickets.find(t => t.code.toUpperCase() === code);
+            if (!ticket) {
+                alert(`عذراً، لم يتم العثور على التذكرة رقم (${code}). تأكد من صحة الرمز.`);
+                return;
+            }
+
+            currentTrackingTicketId = ticket.id;
+            if (inputField) inputField.value = ticket.code;
+            renderTrackerView();
+        }
+
+        function renderTrackerView() {
+            // إذا لم يتم اختيار تذكرة مسبقاً، اختر آخر تذكرة مسجلة تلقائياً
+            if (!currentTrackingTicketId && appState.tickets.length > 0) {
+                currentTrackingTicketId = appState.tickets[appState.tickets.length - 1].id;
+            }
+
+            if (!currentTrackingTicketId) return;
+
+            const ticket = appState.tickets.find(t => t.id === currentTrackingTicketId);
+            if (!ticket) return;
+
+            // 1. تحديث البطاقة العلوية
+            const displayCodeEl = document.getElementById('tracker-display-code');
+            if (displayCodeEl) displayCodeEl.textContent = ticket.code;
+
+            const displayServiceEl = document.getElementById('tracker-display-service');
+            if (displayServiceEl) displayServiceEl.textContent = ticket.serviceName;
+
+            const badge = document.getElementById('tracker-status-badge');
+            const targetBox = document.getElementById('tracker-target-counter-box');
+            const ahead = appState.tickets.filter(t => t.status === 'waiting' && t.serviceId === ticket.serviceId && t.createdAt < ticket.createdAt).length;
+
+            if (ticket.status === 'waiting') {
+                if (badge) {
+                    badge.textContent = 'في قائمة الانتظار';
+                    badge.className = 'px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-bold';
+                }
+                if (targetBox) targetBox.classList.add('hidden');
+
+                document.getElementById('tracker-display-ahead').textContent = ahead;
+                document.getElementById('tracker-display-eta').textContent = `~ ${Math.max(1, ahead * 4)} د`;
+                document.getElementById('tracker-display-current').textContent = appState.lastCalled ? appState.lastCalled.ticketCode : '---';
+
+            } else if (ticket.status === 'serving') {
+                if (badge) {
+                    badge.textContent = 'يتم النداء الآن! تفضل للشباك';
+                    badge.className = 'px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold';
+                }
+                if (targetBox) {
+                    targetBox.classList.remove('hidden');
+                    document.getElementById('tracker-target-counter').textContent = ticket.counterName || 'المكتب المحدد';
+                }
+
+                document.getElementById('tracker-display-ahead').textContent = '0';
+                document.getElementById('tracker-display-eta').textContent = 'الآن';
+                document.getElementById('tracker-display-current').textContent = ticket.code;
+
+            } else if (ticket.status === 'completed') {
+                if (badge) {
+                    badge.textContent = 'تمت خدمتك بنجاح';
+                    badge.className = 'px-3 py-1 rounded-full bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300 font-bold';
+                }
+                if (targetBox) targetBox.classList.add('hidden');
+
+                document.getElementById('tracker-display-ahead').textContent = '0';
+                document.getElementById('tracker-display-eta').textContent = 'منتهي';
+                document.getElementById('tracker-display-current').textContent = ticket.code;
+            }
+
+            // 2. تحديث بطاقة التذكرة السفلية لتكون مطابقة 100% للرقم العلوي تلقائياً
+            updateThermalReceiptElements(ticket, ahead);
+        }
+
+        // ==============================================
+        // لوحة الموظف
+        // ==============================================
         function changeStaffCounter(counterId) {
             currentStaffCounterId = counterId;
             renderStaffView();
@@ -1508,68 +1619,9 @@
             }
         }
 
-        // ===================================================================
-        // شاشة تتبع التذكرة: شاشة عرض فقط لمعلومات الرقم (Display-Only Screen)
-        // ===================================================================
-        function trackSpecificTicket(codeOverride) {
-            const code = codeOverride || document.getElementById('tracker-input-code').value.trim().toUpperCase();
-            if (!code) {
-                alert('يرجى إدخال رمز التذكرة أولاً.');
-                return;
-            }
-
-            const ticket = appState.tickets.find(t => t.code.toUpperCase() === code);
-            if (!ticket) {
-                alert('عذراً، لم يتم العثور على التذكرة. تأكد من صحة الرمز.');
-                return;
-            }
-
-            currentTrackingTicketId = ticket.id;
-            renderTrackerView();
-        }
-
-        function renderTrackerView() {
-            if (!currentTrackingTicketId) return;
-            const ticket = appState.tickets.find(t => t.id === currentTrackingTicketId);
-            if (!ticket) return;
-
-            document.getElementById('tracker-display-code').textContent = ticket.code;
-            document.getElementById('tracker-display-service').textContent = ticket.serviceName;
-
-            const badge = document.getElementById('tracker-status-badge');
-            const targetBox = document.getElementById('tracker-target-counter-box');
-
-            if (ticket.status === 'waiting') {
-                badge.textContent = 'في قائمة الانتظار';
-                badge.className = 'px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-bold';
-                targetBox.classList.add('hidden');
-
-                const ahead = appState.tickets.filter(t => t.status === 'waiting' && t.serviceId === ticket.serviceId && t.createdAt < ticket.createdAt).length;
-                document.getElementById('tracker-display-ahead').textContent = ahead;
-                document.getElementById('tracker-display-eta').textContent = `~ ${Math.max(1, ahead * 4)}`;
-                document.getElementById('tracker-display-current').textContent = appState.lastCalled ? appState.lastCalled.ticketCode : '---';
-
-            } else if (ticket.status === 'serving') {
-                badge.textContent = 'يتم النداء الآن! تفضل للشباك';
-                badge.className = 'px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold';
-                targetBox.classList.remove('hidden');
-                document.getElementById('tracker-target-counter').textContent = ticket.counterName || 'المكتب المحدد';
-
-                document.getElementById('tracker-display-ahead').textContent = '0';
-                document.getElementById('tracker-display-eta').textContent = 'الآن';
-                document.getElementById('tracker-display-current').textContent = ticket.code;
-
-            } else if (ticket.status === 'completed') {
-                badge.textContent = 'تمت خدمتك بنجاح';
-                badge.className = 'px-3 py-1 rounded-full bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300 font-bold';
-                targetBox.classList.add('hidden');
-
-                document.getElementById('tracker-display-ahead').textContent = '0';
-                document.getElementById('tracker-display-eta').textContent = 'منتهي';
-            }
-        }
-
+        // ==============================================
         // الاستعلام والبحث
+        // ==============================================
         function searchTickets() {
             const q = document.getElementById('search-query-input').value.trim();
             const container = document.getElementById('search-results-list');
@@ -1612,11 +1664,14 @@
 
         function openTrackFromSearch(code) {
             switchView('tracker');
-            document.getElementById('tracker-input-code').value = code;
+            const input = document.getElementById('tracker-input-code');
+            if (input) input.value = code;
             trackSpecificTicket(code);
         }
 
-        // لوحة المدير
+        // ==============================================
+        // لوحة المدير والإعدادات
+        // ==============================================
         function verifyAdminPin() {
             const inputPin = document.getElementById('admin-pin-input').value.trim();
             if (inputPin === appState.settings.adminPin) {
@@ -1712,12 +1767,12 @@
                 appState.tickets = [];
                 appState.counters.forEach(c => c.activeTicketId = null);
                 appState.lastCalled = null;
+                currentTrackingTicketId = null;
                 saveState();
                 alert('تم تصفير السجلات بنجاح.');
             }
         }
 
-        // مودال الخدمات والمكاتب
         function openAddServiceModal() {
             document.getElementById('modal-service-id').value = '';
             document.getElementById('modal-service-name').value = '';
@@ -1803,7 +1858,9 @@
             document.getElementById(modalId).classList.add('hidden');
         }
 
-        // Render All Views
+        // ==============================================
+        // تحديث وعرض كافة الشاشات
+        // ==============================================
         function renderAllViews() {
             document.getElementById('app-org-name').textContent = appState.settings.orgName;
             document.getElementById('app-branch-name').textContent = appState.settings.branchName;
@@ -2036,8 +2093,11 @@
             }
         }
 
-        // Navigation
+        // ==============================================
+        // التبديل بين الشاشات والروابط
+        // ==============================================
         function switchView(viewName) {
+            document.body.setAttribute('data-active-view', viewName);
             document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
             const target = document.getElementById(`view-${viewName}`);
             if (target) target.classList.remove('hidden');
@@ -2049,6 +2109,13 @@
                     tab.classList.remove('active-tab', 'bg-brand-600', 'text-white');
                 }
             });
+
+            const mobileSelect = document.getElementById('mobile-nav-select');
+            if (mobileSelect) mobileSelect.value = viewName;
+
+            if (viewName === 'tracker') {
+                renderTrackerView();
+            }
 
             if (viewName === 'admin' && !document.getElementById('admin-content').classList.contains('hidden')) {
                 renderAdminTables();
@@ -2068,14 +2135,40 @@
             if (clockEl) clockEl.textContent = new Date().toLocaleTimeString('en-US');
         }, 1000);
 
+        // التعرف على رمز التذكرة الممرر في رابط الباركود (Query Parameter)
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let trackCode = urlParams.get('track');
+            
+            if (!trackCode && window.location.hash) {
+                trackCode = window.location.hash.replace('#', '');
+            }
+
+            if (trackCode) {
+                const match = trackCode.match(/[A-Za-z]-\d+/);
+                if (match) trackCode = match[0];
+
+                switchView('tracker');
+                const input = document.getElementById('tracker-input-code');
+                if (input) input.value = trackCode;
+                trackSpecificTicket(trackCode);
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             setupColorInputs();
             applyCustomTheme();
             initFirebase();
             renderAllViews();
-            switchView('kiosk');
+            
+            // فحص رابط الباركود أولاً، وإن لم يوجد افتح كشك التذاكر
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('track')) {
+                checkUrlParams();
+            } else {
+                switchView('kiosk');
+            }
         });
     </script>
 </body>
 </html>
-```
