@@ -334,7 +334,12 @@
                                 <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
                                 <h3 class="text-xl font-black text-slate-800 dark:text-white">النداء الحالي والمكاتب المتاحة</h3>
                             </div>
-                            <div class="text-sm font-bold text-slate-500 num-latin" id="display-clock">--:--:--</div>
+                            <div class="flex items-center gap-3">
+                                <button onclick="enableAudioEngine()" id="audio-enable-btn" class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow">
+                                    <i class="fa-solid fa-volume-high"></i> تفعيل الصوت
+                                </button>
+                                <div class="text-sm font-bold text-slate-500 num-latin" id="display-clock">--:--:--</div>
+                            </div>
                         </div>
 
                         <div id="latest-called-banner" class="mt-4 p-5 rounded-2xl bg-brand-50 dark:bg-brand-950/40 border-2 border-brand-500 text-center transition-all duration-300">
@@ -548,7 +553,7 @@
                     </div>
                 </div>
 
-                <!-- البطاقة السفلية (المتطابقة تماماً بالأرقام) -->
+                <!-- البطاقة السفلية للطباعة -->
                 <div class="thermal-receipt-wrapper pt-4">
                     <div id="thermal-ticket-print" class="max-w-sm mx-auto p-6 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl text-center font-mono shadow-sm">
                         <h2 id="print-org-name" class="font-bold text-lg text-slate-800 dark:text-white mb-1">نظام الانتظار السحابي</h2>
@@ -915,27 +920,6 @@
 
     </main>
 
-    <!-- قالب التذكرة للطباعة الحرارية المباشرة -->
-    <div id="thermal-ticket-print" class="text-center font-mono p-4">
-        <h2 id="print-org-name" class="font-bold text-lg mb-1">نظام الانتظار السحابي</h2>
-        <p id="print-branch-name" class="text-xs mb-2">الفرع الرئيسي</p>
-        <p>================================</p>
-        <p class="text-xs my-1 font-bold">رقم التذكرة</p>
-        <h1 id="print-ticket-code" class="text-5xl font-black my-2 num-latin">101</h1>
-        <p id="print-service-name" class="text-sm font-bold">خدمة العملاء</p>
-        <p id="print-priority-label" class="text-xs font-bold my-1 text-amber-500" style="display:none;">*** تذكرة أولوية خاصة ***</p>
-        <p>--------------------------------</p>
-        <div style="font-size: 11px; text-align: right; margin: 6px 0;">
-            <p>التاريخ والوقت: <span id="print-timestamp">2026-09-08 10:00</span></p>
-            <p>المراجعين أمامك: <span id="print-ahead-count">0</span></p>
-            <p>الوقت التقديري: <span id="print-eta-time">0 دقائق</span></p>
-        </div>
-        <p>--------------------------------</p>
-        <div id="print-qrcode-container" style="display: flex; justify-content: center; margin: 8px 0;"></div>
-        <p class="text-[10px] font-bold">معلومات الدور المتبقي مسجلة بالباركود أعلاه</p>
-        <p id="print-custom-footer" class="text-[10px] mt-2">نسعد بخدمتكم دائماً</p>
-    </div>
-
     <!-- Modals -->
     <div id="modal-service" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="app-card bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 dark:border-slate-700">
@@ -1005,6 +989,7 @@
         let isFirebaseConnected = false;
         let currentStaffCounterId = 'c1';
         let currentTrackingTicketId = null;
+        let audioEnabled = false;
 
         // الحالة الافتراضية مع ترقيم بالأرقام فقط للخدمات
         const defaultState = {
@@ -1193,6 +1178,28 @@
             }
         }
 
+        // تفعيل محرك الصوت لشاشات العرض والتنقلات لتجاوز حظر المتصفح Autoplay
+        function enableAudioEngine() {
+            audioEnabled = true;
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    const ctx = new AudioContext();
+                    ctx.resume();
+                }
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.resume();
+                }
+                const btn = document.getElementById('audio-enable-btn');
+                if (btn) {
+                    btn.className = 'px-3 py-1 bg-emerald-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow';
+                    btn.innerHTML = '<i class="fa-solid fa-volume-high"></i> الصوت مفعل';
+                }
+            } catch (e) {
+                console.log('Audio init error:', e);
+            }
+        }
+
         // محرك الصوت والنطق بالأرقام الصريحة
         function playChimeSound() {
             try {
@@ -1253,7 +1260,6 @@
             playChimeSound();
             if (!('speechSynthesis' in window)) return;
 
-            // نداء بالأرقام فقط بصيغة فصحى واضحة
             const spokenNumber = arabicNumberToWords(ticketCode);
             const speechText = `تذكرة رقم، ${spokenNumber}، يرجى التوجه إلى، ${counterName}`;
 
@@ -1271,6 +1277,7 @@
 
         // ==============================================
         // إصدار التذاكر بالأرقام فقط (Kiosk View)
+        // إصلاح 3: التوليد الرقمي للتذاكر بحساب أعلى رقم تسلسلي
         // ==============================================
         function issueKioskTicket(serviceId) {
             const nameInput = document.getElementById('kiosk-name');
@@ -1297,11 +1304,18 @@
 
             const isPriority = document.getElementById('kiosk-is-priority').checked;
             
-            // توليد رقم تذكرة بالأرقام فقط (سلسلة 101، 201، 301...)
-            const serviceTickets = appState.tickets.filter(t => t.serviceId === serviceId);
-            const seriesBase = (parseInt(service.prefix, 10) || 1) * 100;
-            const nextSeq = serviceTickets.length + 1;
-            const numericTicketCode = String(seriesBase + nextSeq); // مثال: 101, 102, 201, 301...
+            // توليد رقم تذكرة تراكمي دقيق يستخرج أعلى رقم تسلسلي سابق
+            const prefix = parseInt(service.prefix, 10) || 1;
+            const seriesBase = prefix * 100;
+            
+            const existingSeqNumbers = appState.tickets
+                .filter(t => t.serviceId === serviceId)
+                .map(t => parseInt(t.code, 10) - seriesBase)
+                .filter(n => !isNaN(n) && n > 0);
+
+            const maxSeq = existingSeqNumbers.length > 0 ? Math.max(...existingSeqNumbers) : 0;
+            const nextSeq = maxSeq + 1;
+            const numericTicketCode = String(seriesBase + nextSeq);
 
             const newTicket = {
                 id: 't_' + Date.now(),
@@ -1373,7 +1387,7 @@
             window.print();
         }
 
-        // تحديث الإيصال السفلي بالأرقام حصراً
+        // تحديث الإيصال السفلي للطباعة
         function updateThermalReceiptElements(ticket, aheadCount) {
             if (!ticket) return;
 
@@ -1634,6 +1648,7 @@
 
         // ==============================================
         // البحث والاستعلام
+        // إصلاح 1: البحث باستخدام المسميات الموحدة للجوال والهوية
         // ==============================================
         function searchTickets() {
             const q = document.getElementById('search-query-input').value.trim();
@@ -1645,11 +1660,11 @@
                 return;
             }
 
-            const results = appState.tickets.filter(t => 
-                (t.phone && t.phone.includes(q)) || 
-                (t.nationalId && t.nationalId.includes(q)) || 
-                String(t.code).includes(q)
-            );
+            const results = appState.tickets.filter(t => {
+                const userPhone = t.phone || t.customerPhone || '';
+                const userNid = t.nationalId || t.customerNid || '';
+                return userPhone.includes(q) || userNid.includes(q) || String(t.code).includes(q);
+            });
 
             if (results.length === 0) {
                 container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">لم يتم العثور على أي نتائج مطابقة.</p>';
@@ -1659,13 +1674,14 @@
             results.forEach(t => {
                 const item = document.createElement('div');
                 item.className = 'p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex items-center justify-between';
+                const userPhone = t.phone || t.customerPhone || '---';
                 item.innerHTML = `
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="text-lg font-black text-brand-600 num-latin">رقم ${t.code}</span>
                             <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">(${t.serviceName})</span>
                         </div>
-                        <span class="text-[11px] text-slate-400">المراجع: ${t.customerName} • جوال: <span class="num-latin">${t.phone}</span></span>
+                        <span class="text-[11px] text-slate-400">المراجع: ${t.customerName || 'غير مسجل'} • جوال: <span class="num-latin">${userPhone}</span></span>
                     </div>
                     <button onclick="openTrackFromSearch('${t.code}')" class="px-3.5 py-1.5 bg-brand-600 text-white text-xs font-bold rounded-lg hover:bg-brand-700">
                         عرض معلومات الرقم
@@ -1760,8 +1776,8 @@
                 'رقم التذكرة': t.code,
                 'الخدمة': t.serviceName,
                 'اسم المراجع': t.customerName,
-                'رقم الجوال': t.phone,
-                'رقم الهوية': t.nationalId,
+                'رقم الجوال': t.phone || t.customerPhone,
+                'رقم الهوية': t.nationalId || t.customerNid,
                 'أولوية خاصة': t.isPriority ? 'VIP' : 'عادي',
                 'الحالة': t.status === 'completed' ? 'منجز' : (t.status === 'serving' ? 'قيد الخدمة' : 'انتظار'),
                 'المكتب': t.counterName || '-',
@@ -1967,8 +1983,8 @@
             if (activeTicket) {
                 document.getElementById('staff-active-code').textContent = activeTicket.code;
                 document.getElementById('staff-active-service').textContent = activeTicket.serviceName;
-                document.getElementById('staff-active-name').textContent = activeTicket.customerName;
-                document.getElementById('staff-active-phone').textContent = activeTicket.phone;
+                document.getElementById('staff-active-name').textContent = activeTicket.customerName || 'غير مسجل';
+                document.getElementById('staff-active-phone').textContent = activeTicket.phone || activeTicket.customerPhone || '---';
 
                 const minutesWaiting = Math.floor((Date.now() - activeTicket.createdAt) / 60000);
                 document.getElementById('staff-active-duration').textContent = `${minutesWaiting} دقيقة`;
@@ -2012,7 +2028,7 @@
                         <span class="font-bold text-slate-400 num-latin">#${index + 1}</span>
                         <div>
                             <span class="font-black text-brand-600 num-latin text-base">${t.code}</span>
-                            <span class="text-[10px] text-slate-400 block">${t.serviceName} (${t.customerName})</span>
+                            <span class="text-[10px] text-slate-400 block">${t.serviceName} (${t.customerName || 'مراجع'})</span>
                         </div>
                     </div>
                     ${t.isPriority ? '<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500 text-white">VIP</span>' : ''}
@@ -2095,7 +2111,7 @@
                         <tr>
                             <td class="p-2.5 font-bold num-latin text-brand-600 text-sm">${t.code}</td>
                             <td class="p-2.5">${t.serviceName}</td>
-                            <td class="p-2.5 text-slate-500">${t.customerName}</td>
+                            <td class="p-2.5 text-slate-500">${t.customerName || 'مراجع'}</td>
                             <td class="p-2.5">${t.counterName || '-'}</td>
                             <td class="p-2.5 num-latin text-slate-400">${new Date(t.createdAt).toLocaleTimeString('en-US')}</td>
                             <td class="p-2.5 num-latin">${waitMin} د</td>
